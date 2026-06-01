@@ -19,6 +19,8 @@ const editableFields: Array<{ key: keyof Device; label: string; type?: string }>
   { key: "technician", label: "Tecnico responsable" }
 ];
 
+const coverageDeviceTypes = new Set(["camera", "light"]);
+
 export function DeviceDetailsPanel({
   device,
   readonly,
@@ -41,6 +43,7 @@ export function DeviceDetailsPanel({
   }
 
   const Icon = catalogItem?.icon;
+  const hasCoverage = coverageDeviceTypes.has(device.type);
 
   return (
     <aside className="w-96 shrink-0 overflow-y-auto border-l border-line bg-white">
@@ -73,6 +76,46 @@ export function DeviceDetailsPanel({
           </label>
         ))}
 
+        {hasCoverage ? (
+          <div className="rounded-lg border border-line bg-ink-50 p-4">
+            <h3 className="text-sm font-semibold text-ink-900">
+              {device.type === "camera" ? "Vision" : "Iluminacion"}
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-ink-500">
+              Angulo horizontal y direccion del cono mostrado sobre el plano.
+            </p>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <NumberField
+                label="Angulo"
+                value={device.coverageAngle ?? (device.type === "camera" ? 105 : 120)}
+                readonly={readonly}
+                suffix="deg"
+                min={10}
+                max={180}
+                onChange={(value) => updateDevice(device.id, { coverageAngle: value })}
+              />
+              <NumberField
+                label="Direccion"
+                value={device.coverageDirection ?? 0}
+                readonly={readonly}
+                suffix="deg"
+                min={0}
+                max={359}
+                onChange={(value) => updateDevice(device.id, { coverageDirection: value })}
+              />
+              <NumberField
+                label="Alcance"
+                value={device.coverageRange ?? (device.type === "camera" ? 190 : 160)}
+                readonly={readonly}
+                suffix="px"
+                min={40}
+                max={420}
+                onChange={(value) => updateDevice(device.id, { coverageRange: value })}
+              />
+            </div>
+          </div>
+        ) : null}
+
         <label className="block text-xs font-semibold uppercase tracking-wide text-ink-500">
           Notas
           <textarea
@@ -100,5 +143,48 @@ export function DeviceDetailsPanel({
         </div>
       </div>
     </aside>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  readonly,
+  suffix,
+  min,
+  max,
+  onChange
+}: {
+  label: string;
+  value: number;
+  readonly?: boolean;
+  suffix: string;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="block text-[11px] font-semibold uppercase tracking-wide text-ink-500">
+      {label}
+      <div className="mt-2 flex h-10 overflow-hidden rounded-md border border-line bg-white">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          value={value}
+          readOnly={readonly}
+          onChange={(event) => {
+            const nextValue = Number(event.target.value);
+            if (Number.isFinite(nextValue)) {
+              onChange(Math.min(Math.max(nextValue, min), max));
+            }
+          }}
+          className="min-w-0 flex-1 px-2 text-sm text-ink-900 outline-none"
+        />
+        <span className="grid w-10 place-items-center border-l border-line bg-ink-50 text-xs text-ink-500">
+          {suffix}
+        </span>
+      </div>
+    </label>
   );
 }

@@ -129,6 +129,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       notes: "",
       x,
       y,
+      ...getDefaultCoverage(type),
       files: []
     };
     const devices = [...get().devices, device];
@@ -182,6 +183,16 @@ function touchProject(projects: Project[], projectId: string) {
   return projects.map((project) =>
     project.id === projectId ? { ...project, updatedAt: new Date().toISOString() } : project
   );
+}
+
+function getDefaultCoverage(type: DeviceType) {
+  if (type === "camera") {
+    return { coverageAngle: 105, coverageDirection: 0, coverageRange: 190 };
+  }
+  if (type === "light") {
+    return { coverageAngle: 120, coverageDirection: 0, coverageRange: 160 };
+  }
+  return {};
 }
 
 function migrateSnapshot(projects: Project[], plans: FloorPlan[], devices: Device[], planElements: PlanElement[]) {

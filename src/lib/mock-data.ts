@@ -60,6 +60,9 @@ export const mockDevices: Device[] = [
     notes: "Enfoque hacia puerta principal. Revisar mascara de privacidad.",
     x: 260,
     y: 188,
+    coverageAngle: 105,
+    coverageDirection: 0,
+    coverageRange: 190,
     files: []
   },
   {

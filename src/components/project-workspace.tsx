@@ -2,14 +2,15 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, ImageOff, Layers, MousePointer2, PencilLine, Plus, Square, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Cable, ExternalLink, ImageOff, Layers, MapPin, MousePointer2, PencilLine, Plus, Square, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DeviceDetailsPanel } from "@/components/device-details-panel";
 import { DevicePalette } from "@/components/device-palette";
 import { LayerControls } from "@/components/layer-controls";
+import { cableRouteLabels, cableRouteStyles } from "@/lib/cable-routes";
 import { useProjectStore } from "@/lib/store";
-import type { DeviceType, LayerType, PlanDrawingTool } from "@/lib/types";
+import type { CableRouteType, DeviceType, LayerType, PlanDrawingTool } from "@/lib/types";
 
 const PlanCanvas = dynamic(() => import("@/components/plan-canvas").then((mod) => mod.PlanCanvas), {
   ssr: false
@@ -41,6 +42,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [visibleLayers, setVisibleLayers] = useState(initialLayers);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
   const [drawingTool, setDrawingTool] = useState<PlanDrawingTool>("select");
+  const [cableType, setCableType] = useState<CableRouteType>("underground");
 
   useEffect(() => hydrate(), [hydrate]);
 
@@ -162,6 +164,26 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               <ToolButton active={drawingTool === "select"} icon={<MousePointer2 size={16} />} label="Seleccionar" onClick={() => setDrawingTool("select")} />
               <ToolButton active={drawingTool === "wall"} icon={<PencilLine size={16} />} label="Pared" onClick={() => setDrawingTool("wall")} />
               <ToolButton active={drawingTool === "area"} icon={<Square size={16} />} label="Ambiente" onClick={() => setDrawingTool("area")} />
+              <ToolButton active={drawingTool === "cable"} icon={<Cable size={16} />} label="Cableado" onClick={() => setDrawingTool("cable")} />
+              <ToolButton active={drawingTool === "junction"} icon={<MapPin size={16} />} label="Registro" onClick={() => setDrawingTool("junction")} />
+              {drawingTool === "cable" ? (
+                <>
+                  <select
+                    className="h-9 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 outline-none focus:border-accent-500"
+                    value={cableType}
+                    onChange={(event) => setCableType(event.target.value as CableRouteType)}
+                  >
+                    {Object.entries(cableRouteLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs font-medium text-ink-500">
+                    {selectedDevice ? `Vinculando a ${selectedDevice.name}` : "Selecciona un dispositivo para vincular el recorrido"}
+                  </span>
+                </>
+              ) : null}
               <button
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 transition hover:border-accent-500/50"
                 onClick={() => updatePlanSource(plan.id, undefined, "blank")}
@@ -188,6 +210,8 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               devices={projectDevices}
               planElements={projectPlanElements}
               drawingTool={mode === "edit" ? drawingTool : "select"}
+              cableType={cableType}
+              activeDeviceId={selectedDeviceId}
               visibleLayers={visibleLayers}
               selectedDeviceId={selectedDeviceId}
               readonly={mode === "view"}
@@ -202,8 +226,35 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           </div>
           <DeviceDetailsPanel device={selectedDevice} readonly={mode === "view"} onClose={() => setSelectedDeviceId(undefined)} />
         </div>
+        <CableLegend />
       </section>
     </AppShell>
+  );
+}
+
+function CableLegend() {
+  return (
+    <div className="border-t border-line bg-white px-5 py-2">
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">Cableado</span>
+        {Object.entries(cableRouteLabels).map(([type, label]) => {
+          const style = cableRouteStyles[type as CableRouteType];
+          return (
+            <span key={type} className="inline-flex items-center gap-2 text-xs font-medium text-ink-600">
+              <span
+                className="h-0.5 w-10 rounded-full"
+                style={{
+                  backgroundColor: style.color,
+                  borderTop: style.dash ? `2px dashed ${style.color}` : undefined,
+                  backgroundClip: "padding-box"
+                }}
+              />
+              {label}
+            </span>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

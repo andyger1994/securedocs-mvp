@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Group, Image as KonvaImage, Layer, Line, Rect, Stage, Text } from "react-konva";
 import type Konva from "konva";
+import { cableRouteLabels, cableRouteStyles, junctionStyle } from "@/lib/cable-routes";
 import { deviceCatalog, layerColors } from "@/lib/device-catalog";
-import type { Device, DeviceType, FloorPlan, LayerType, PlanDrawingTool, PlanElement, PlanElementType } from "@/lib/types";
+import type { CableRouteType, Device, DeviceType, FloorPlan, LayerType, PlanDrawingTool, PlanElement, PlanElementType } from "@/lib/types";
 
 const CANVAS_WIDTH = 1120;
 const CANVAS_HEIGHT = 720;
@@ -15,8 +16,10 @@ export function PlanCanvas({
   devices,
   planElements,
   drawingTool,
+  cableType,
   visibleLayers,
   selectedDeviceId,
+  activeDeviceId,
   readonly,
   onAddDevice,
   onAddPlanElement,
@@ -27,8 +30,10 @@ export function PlanCanvas({
   devices: Device[];
   planElements: PlanElement[];
   drawingTool: PlanDrawingTool;
+  cableType: CableRouteType;
   visibleLayers: Record<LayerType, boolean>;
   selectedDeviceId?: string;
+  activeDeviceId?: string;
   readonly?: boolean;
   onAddDevice: (type: DeviceType, x: number, y: number) => void;
   onAddPlanElement: (type: PlanElementType, element: Omit<PlanElement, "id" | "projectId" | "planId" | "type">) => void;
@@ -123,6 +128,15 @@ export function PlanCanvas({
   function handleDrawStart() {
     if (readonly || drawingTool === "select") return;
     const point = getPointerOnPlan();
+    if (drawingTool === "junction") {
+      onAddPlanElement("junction", {
+        x: point.x,
+        y: point.y,
+        label: "Registro",
+        deviceId: activeDeviceId
+      });
+      return;
+    }
     setDraft({ startX: point.x, startY: point.y, x: point.x, y: point.y });
   }
 
@@ -134,10 +148,10 @@ export function PlanCanvas({
 
   function handleDrawEnd() {
     if (!draft || readonly || drawingTool === "select") return;
-    const element = createPlanElementDraft(drawingTool, draft);
+    const element = createPlanElementDraft(drawingTool, draft, cableType, activeDeviceId);
     setDraft(null);
     if (element) {
-      onAddPlanElement(drawingTool === "wall" ? "wall" : "area", element);
+      onAddPlanElement(getElementTypeFromTool(drawingTool), element);
     }
   }
 
@@ -177,9 +191,12 @@ export function PlanCanvas({
               <BlankPlan plan={plan} />
             )}
             {planElements.map((element) => (
-              <PlanElementNode key={element.id} element={element} />
+              <PlanElementNode key={element.id} element={element} activeDeviceId={activeDeviceId} />
             ))}
             {draft ? <DraftPlanElement tool={drawingTool} draft={draft} /> : null}
+            {visibleDevices.filter(hasCoverage).map((device) => (
+              <CoverageSector key={`coverage-${device.id}`} device={device} />
+            ))}
             {deviceClusters.map((cluster) => (
               cluster.devices.length === 1 ? (
                 <DeviceNode
@@ -217,6 +234,33 @@ export function PlanCanvas({
   );
 }
 
+function CoverageSector({ device }: { device: Device }) {
+  const angle = device.coverageAngle ?? (device.type === "camera" ? 105 : 120);
+  const direction = device.coverageDirection ?? 0;
+  const range = device.coverageRange ?? (device.type === "camera" ? 190 : 160);
+  const color = layerColors[device.layer];
+
+  return (
+    <Group>
+      <Line
+        points={getSectorPoints(device.x, device.y, range, angle, direction)}
+        closed
+        fill={color}
+        opacity={0.16}
+        stroke={color}
+        strokeWidth={2}
+      />
+      <Line
+        points={[device.x, device.y, ...getDirectionPoint(device.x, device.y, range, direction)]}
+        stroke={color}
+        strokeWidth={2}
+        opacity={0.5}
+        dash={[6, 5]}
+      />
+    </Group>
+  );
+}
+
 function BlankPlan({ plan }: { plan: FloorPlan }) {
   return (
     <Group>
@@ -242,9 +286,69 @@ function BlankPlan({ plan }: { plan: FloorPlan }) {
   );
 }
 
-function PlanElementNode({ element }: { element: PlanElement }) {
+function PlanElementNode({ element, activeDeviceId }: { element: PlanElement; activeDeviceId?: string }) {
   if (element.type === "wall") {
     return <Line points={element.points ?? []} stroke="#121722" strokeWidth={6} lineCap="round" lineJoin="round" />;
+  }
+
+  if (element.type === "cable") {
+    const cableType = element.cableType ?? "underground";
+    const style = cableRouteStyles[cableType];
+    const isLinkedToActiveDevice = Boolean(activeDeviceId && element.deviceId === activeDeviceId);
+    const shouldDim = Boolean(activeDeviceId && element.deviceId !== activeDeviceId);
+    const shouldHide = Boolean(activeDeviceId && !element.deviceId);
+
+    if (shouldHide) return null;
+
+    return (
+      <Group>
+        <Line
+          points={element.points ?? []}
+          stroke="#ffffff"
+          strokeWidth={8}
+          opacity={shouldDim ? 0.18 : 0.86}
+          lineCap="round"
+          lineJoin="round"
+        />
+        <Line
+          points={element.points ?? []}
+          stroke={style.color}
+          strokeWidth={isLinkedToActiveDevice ? 6 : 4}
+          dash={style.dash}
+          lineCap="round"
+          lineJoin="round"
+          opacity={shouldDim ? 0.22 : 1}
+        />
+        {!activeDeviceId || isLinkedToActiveDevice ? (
+          <Text
+            x={element.x + 8}
+            y={element.y + 8}
+            text={cableRouteLabels[cableType]}
+            fill={style.color}
+            fontSize={11}
+            fontStyle="bold"
+          />
+        ) : null}
+      </Group>
+    );
+  }
+
+  if (element.type === "junction") {
+    const isLinkedToActiveDevice = Boolean(activeDeviceId && element.deviceId === activeDeviceId);
+    const shouldHide = Boolean(activeDeviceId && element.deviceId !== activeDeviceId);
+
+    if (shouldHide) return null;
+
+    return (
+      <Group x={element.x} y={element.y}>
+        <Circle radius={isLinkedToActiveDevice ? 12 : 10} fill={junctionStyle.fill} stroke={junctionStyle.color} strokeWidth={3} shadowBlur={8} shadowOpacity={0.12} />
+        <Line points={[-5, 0, 5, 0]} stroke={junctionStyle.color} strokeWidth={2} lineCap="round" />
+        <Line points={[0, -5, 0, 5]} stroke={junctionStyle.color} strokeWidth={2} lineCap="round" />
+        {!activeDeviceId || isLinkedToActiveDevice ? (
+          <Text x={-24} y={14} width={48} align="center" text={element.label ?? "Registro"} fill={junctionStyle.color} fontSize={10} fontStyle="bold" />
+        ) : null}
+      </Group>
+    );
   }
 
   return (
@@ -273,6 +377,10 @@ function DraftPlanElement({
 }) {
   if (tool === "wall") {
     return <Line points={[draft.startX, draft.startY, draft.x, draft.y]} stroke="#121722" strokeWidth={6} opacity={0.55} lineCap="round" />;
+  }
+
+  if (tool === "cable") {
+    return <Line points={[draft.startX, draft.startY, draft.x, draft.y]} stroke="#2f6df6" strokeWidth={4} opacity={0.7} dash={[8, 6]} lineCap="round" />;
   }
 
   const rect = normalizeRect(draft.startX, draft.startY, draft.x, draft.y);
@@ -334,9 +442,18 @@ function DeviceNode({
       x={device.x}
       y={device.y}
       draggable={!readonly}
+      onDragStart={(event) => {
+        event.cancelBubble = true;
+      }}
+      onDragMove={(event) => {
+        event.cancelBubble = true;
+      }}
       onClick={() => onSelectDevice(device.id)}
       onTap={() => onSelectDevice(device.id)}
-      onDragEnd={(event) => onMoveDevice(device.id, event.target.x(), event.target.y())}
+      onDragEnd={(event) => {
+        event.cancelBubble = true;
+        onMoveDevice(device.id, event.target.x(), event.target.y());
+      }}
     >
       <DeviceIcon device={device} selected={selected} />
     </Group>
@@ -606,21 +723,47 @@ function getDeviceLabel(type: DeviceType) {
   return deviceCatalog.find((item) => item.type === type)?.label ?? "Dispositivo";
 }
 
+function hasCoverage(device: Device) {
+  return device.type === "camera" || device.type === "light";
+}
+
+function getSectorPoints(x: number, y: number, range: number, angle: number, direction: number) {
+  const points = [x, y];
+  const start = direction - angle / 2;
+  const steps = Math.max(10, Math.ceil(angle / 8));
+
+  for (let index = 0; index <= steps; index += 1) {
+    const currentAngle = start + (angle * index) / steps;
+    const radians = (currentAngle * Math.PI) / 180;
+    points.push(x + Math.cos(radians) * range, y + Math.sin(radians) * range);
+  }
+
+  return points;
+}
+
+function getDirectionPoint(x: number, y: number, range: number, direction: number) {
+  const radians = (direction * Math.PI) / 180;
+  return [x + Math.cos(radians) * range, y + Math.sin(radians) * range];
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
 function createPlanElementDraft(
   tool: PlanDrawingTool,
-  draft: { startX: number; startY: number; x: number; y: number }
+  draft: { startX: number; startY: number; x: number; y: number },
+  cableType: CableRouteType,
+  activeDeviceId?: string
 ): Omit<PlanElement, "id" | "projectId" | "planId" | "type"> | null {
-  if (tool === "wall") {
+  if (tool === "wall" || tool === "cable") {
     const distance = Math.hypot(draft.x - draft.startX, draft.y - draft.startY);
     if (distance < 12) return null;
     return {
       x: draft.startX,
       y: draft.startY,
-      points: [draft.startX, draft.startY, draft.x, draft.y]
+      points: [draft.startX, draft.startY, draft.x, draft.y],
+      ...(tool === "cable" ? { cableType, deviceId: activeDeviceId } : {})
     };
   }
 
@@ -634,6 +777,13 @@ function createPlanElementDraft(
   }
 
   return null;
+}
+
+function getElementTypeFromTool(tool: PlanDrawingTool): PlanElementType {
+  if (tool === "cable") return "cable";
+  if (tool === "junction") return "junction";
+  if (tool === "wall") return "wall";
+  return "area";
 }
 
 function normalizeRect(startX: number, startY: number, x: number, y: number) {

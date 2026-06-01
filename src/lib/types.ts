@@ -27,9 +27,11 @@ export type DeviceType =
 
 export type DeviceFileType = "photo" | "document";
 
-export type PlanDrawingTool = "select" | "wall" | "area";
+export type PlanDrawingTool = "select" | "wall" | "area" | "cable" | "junction";
 
-export type PlanElementType = "wall" | "area";
+export type PlanElementType = "wall" | "area" | "cable" | "junction";
+
+export type CableRouteType = "underground" | "in_wall" | "galvanized_pipe" | "pvc_duct";
 
 export interface Organization {
   id: string;
@@ -73,6 +75,8 @@ export interface PlanElement {
   height?: number;
   points?: number[];
   label?: string;
+  cableType?: CableRouteType;
+  deviceId?: string;
 }
 
 export interface DeviceFile {
@@ -110,5 +114,8 @@ export interface Device {
   notes: string;
   x: number;
   y: number;
+  coverageAngle?: number;
+  coverageDirection?: number;
+  coverageRange?: number;
   files: DeviceFile[];
 }

@@ -35,13 +35,14 @@ create table plan_elements (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(id) on delete cascade,
   plan_id uuid not null references floors(id) on delete cascade,
-  type text not null check (type in ('wall', 'area')),
+  type text not null check (type in ('wall', 'area', 'cable', 'junction')),
   x numeric not null,
   y numeric not null,
   width numeric,
   height numeric,
   points jsonb,
   label text,
+  cable_type text check (cable_type in ('underground', 'in_wall', 'galvanized_pipe', 'pvc_duct')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

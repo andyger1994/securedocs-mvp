@@ -10,6 +10,8 @@ MVP web SaaS para documentacion interactiva profesional de instalaciones de segu
 - Dashboard operativo en `/dashboard`.
 - Vista de proyecto con plano base mock, subida de imagen/PDF, zoom y desplazamiento.
 - Modo dibujo para crear paredes y ambientes directamente sobre el plano.
+- Trazado de cableado con tipo de instalacion: subterraneo, embutido, caño galvanizado o ducto PVC.
+- Puntos de registro/caja de paso vinculables al dispositivo seleccionado.
 - Proyectos nuevos con plano en blanco para dibujar desde cero.
 - Separacion por pisos/planos: Piso 1, Piso 2, Piso 3, etc.
 - Capas activables: CCTV, Control de acceso, Alarma, Red y Energia.
