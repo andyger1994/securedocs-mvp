@@ -441,6 +441,45 @@ function DeviceIcon({ device, selected }: { device: Device; selected: boolean })
           <Line points={[11, -1, 14, -4, 14, 4, 11, 1]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
         </Group>
       ) : null}
+      {device.type === "light" ? (
+        <Group>
+          <Circle y={-3} radius={7} fill="#ffffff" />
+          <Line points={[-4, 6, 4, 6]} stroke="#ffffff" strokeWidth={3} lineCap="round" />
+          <Line points={[0, 6, 0, 10]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+        </Group>
+      ) : null}
+      {device.type === "audio" || device.type === "audio_amplifier" ? (
+        <Group>
+          <Line points={[-10, -5, -4, -5, 4, -10, 4, 10, -4, 5, -10, 5]} closed fill="#ffffff" />
+          <Line points={[8, -6, 12, -2, 12, 2, 8, 6]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+        </Group>
+      ) : null}
+      {device.type === "siren" ? (
+        <Group>
+          <Rect x={-8} y={-3} width={16} height={11} fill="#ffffff" cornerRadius={3} />
+          <Line points={[-5, -5, 0, -11, 5, -5]} stroke="#ffffff" strokeWidth={2} lineCap="round" lineJoin="round" />
+          <Line points={[-12, -1, -15, -5]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+          <Line points={[12, -1, 15, -5]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+        </Group>
+      ) : null}
+      {device.type === "wireless_sensor" ? (
+        <Group>
+          <Circle radius={6} fill="#ffffff" />
+          <Circle radius={2.5} fill={color} />
+          <Line points={[-9, -9, -5, -13, 0, -14, 5, -13, 9, -9]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+        </Group>
+      ) : null}
+      {device.type === "wireless_magnetic" || device.type === "wired_magnetic" ? (
+        <Group>
+          <Rect x={-11} y={-8} width={8} height={16} fill="#ffffff" cornerRadius={2} />
+          <Rect x={3} y={-8} width={8} height={16} fill="#ffffff" cornerRadius={2} />
+          {device.type === "wireless_magnetic" ? (
+            <Line points={[-5, -12, 0, -15, 5, -12]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+          ) : (
+            <Line points={[-3, 11, 3, 11]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+          )}
+        </Group>
+      ) : null}
       {device.type === "rack" ? (
         <Group>
           <Rect x={-8} y={-11} width={16} height={22} fill="#ffffff" cornerRadius={2} />
@@ -457,10 +496,71 @@ function DeviceIcon({ device, selected }: { device: Device; selected: boolean })
           ))}
         </Group>
       ) : null}
+      {device.type === "mini_pc" ? (
+        <Group>
+          <Rect x={-7} y={-11} width={14} height={22} fill="#ffffff" cornerRadius={3} />
+          <Circle y={6} radius={2} fill={color} />
+          <Line points={[-3, -5, 3, -5]} stroke={color} strokeWidth={2} />
+        </Group>
+      ) : null}
+      {device.type === "mikrotik" || device.type === "antel_ont" ? (
+        <Group>
+          <Rect x={-12} y={-7} width={24} height={14} fill="#ffffff" cornerRadius={3} />
+          <Line points={[-8, 0, 8, 0]} stroke={color} strokeWidth={2} />
+          <Circle x={-8} y={0} radius={2} fill={color} />
+          <Circle x={0} y={0} radius={2} fill={color} />
+          <Circle x={8} y={0} radius={2} fill={color} />
+        </Group>
+      ) : null}
       {device.type === "ups" ? (
         <Group>
           <Rect x={-8} y={-10} width={16} height={20} fill="#ffffff" cornerRadius={3} />
           <Line points={[0, -6, -4, 1, 1, 1, -2, 7, 5, -2, 0, -2]} stroke={color} strokeWidth={2} lineJoin="round" lineCap="round" />
+        </Group>
+      ) : null}
+      {device.type === "electrical_panel" ? (
+        <Group>
+          <Rect x={-10} y={-11} width={20} height={22} fill="#ffffff" cornerRadius={3} />
+          <Line points={[0, -7, -4, 0, 2, 0, -2, 7]} stroke={color} strokeWidth={2.2} lineCap="round" lineJoin="round" />
+        </Group>
+      ) : null}
+      {device.type === "contactor" ? (
+        <Group>
+          <Rect x={-11} y={-8} width={22} height={16} fill="#ffffff" cornerRadius={3} />
+          <Line points={[-6, 0, -1, 0, 5, -5]} stroke={color} strokeWidth={2} lineCap="round" />
+          <Line points={[5, -5, 8, -5]} stroke={color} strokeWidth={2} lineCap="round" />
+        </Group>
+      ) : null}
+      {device.type === "battery_bank" ? (
+        <Group>
+          <Rect x={-11} y={-7} width={22} height={14} fill="#ffffff" cornerRadius={3} />
+          <Rect x={11} y={-3} width={3} height={6} fill="#ffffff" cornerRadius={1} />
+          <Line points={[-6, 0, -2, 0]} stroke={color} strokeWidth={2} />
+          <Line points={[4, -3, 4, 3]} stroke={color} strokeWidth={2} />
+          <Line points={[1, 0, 7, 0]} stroke={color} strokeWidth={2} />
+        </Group>
+      ) : null}
+      {device.type === "keypad" ? (
+        <Group>
+          <Rect x={-8} y={-11} width={16} height={22} fill="#ffffff" cornerRadius={3} />
+          {[-4, 0, 4].map((x) => [x, -4, 3].map((value, index) => ({ x, y: index * 5 - 5 }))).flat().map((point, index) => (
+            <Circle key={`${point.x}-${point.y}-${index}`} x={point.x} y={point.y} radius={1.3} fill={color} />
+          ))}
+        </Group>
+      ) : null}
+      {device.type === "video_display" ? (
+        <Group>
+          <Rect x={-12} y={-8} width={24} height={15} fill="#ffffff" cornerRadius={2} />
+          <Line points={[-4, 11, 4, 11]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+          <Line points={[0, 7, 0, 11]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+        </Group>
+      ) : null}
+      {device.type === "intercom" ? (
+        <Group>
+          <Rect x={-8} y={-11} width={16} height={22} fill="#ffffff" cornerRadius={3} />
+          <Circle y={-5} radius={3} fill={color} />
+          <Line points={[-4, 2, 4, 2]} stroke={color} strokeWidth={2} lineCap="round" />
+          <Line points={[-4, 7, 4, 7]} stroke={color} strokeWidth={2} lineCap="round" />
         </Group>
       ) : null}
       {device.type === "nvr" ? (

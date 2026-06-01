@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Building2, CheckCircle2, Layers3, Map, ShieldCheck, Wrench } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, Layers3, Map, Wrench } from "lucide-react";
+import { LiconexLogo } from "@/components/liconex-logo";
 
 const features = [
   {
@@ -27,12 +28,7 @@ export function LandingPage() {
     <main className="min-h-screen bg-ink-50 text-ink-900">
       <header className="fixed inset-x-0 top-0 z-40 border-b border-white/50 bg-white/84 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-ink-900 text-white">
-              <ShieldCheck size={19} />
-            </span>
-            <span className="text-sm font-semibold tracking-wide">SecureDocs</span>
-          </Link>
+          <LiconexLogo href="/" />
           <nav className="hidden items-center gap-6 text-sm font-medium text-ink-500 md:flex">
             <a href="#producto" className="hover:text-ink-900">Producto</a>
             <a href="#flujo" className="hover:text-ink-900">Flujo</a>
@@ -64,7 +60,7 @@ export function LandingPage() {
               SaaS para instaladores e integradores
             </p>
             <h1 className="text-4xl font-semibold leading-tight text-ink-900 md:text-6xl">
-              SecureDocs
+              Liconex
             </h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-ink-700 md:text-lg">
               Documentacion interactiva profesional para instalaciones de seguridad electronica:

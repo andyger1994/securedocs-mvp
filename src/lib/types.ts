@@ -1,6 +1,29 @@
 export type LayerType = "cctv" | "access" | "alarm" | "network" | "power";
 
-export type DeviceType = "camera" | "reader" | "sensor" | "rack" | "switch" | "ups" | "nvr";
+export type DeviceType =
+  | "camera"
+  | "reader"
+  | "sensor"
+  | "rack"
+  | "switch"
+  | "ups"
+  | "nvr"
+  | "light"
+  | "audio"
+  | "siren"
+  | "wireless_sensor"
+  | "wireless_magnetic"
+  | "wired_magnetic"
+  | "mini_pc"
+  | "mikrotik"
+  | "antel_ont"
+  | "audio_amplifier"
+  | "electrical_panel"
+  | "contactor"
+  | "battery_bank"
+  | "keypad"
+  | "video_display"
+  | "intercom";
 
 export type DeviceFileType = "photo" | "document";
 

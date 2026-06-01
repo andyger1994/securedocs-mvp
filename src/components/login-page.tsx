@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, LockKeyhole } from "lucide-react";
 import { useEffect, useState } from "react";
 import { isAuthenticated, login } from "@/lib/auth";
+import { LiconexLogo } from "@/components/liconex-logo";
 
 export function LoginPage() {
   const router = useRouter();
@@ -31,12 +32,7 @@ export function LoginPage() {
     <main className="min-h-screen bg-ink-50 text-ink-900">
       <div className="mx-auto grid min-h-screen max-w-6xl px-5 py-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <section className="hidden pr-10 lg:block">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-ink-900 text-white">
-              <ShieldCheck size={20} />
-            </span>
-            <span className="text-sm font-semibold tracking-wide">SecureDocs</span>
-          </Link>
+          <LiconexLogo href="/" />
           <h1 className="mt-10 text-4xl font-semibold leading-tight">
             Ingreso seguro al workspace tecnico
           </h1>

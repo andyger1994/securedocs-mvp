@@ -23,7 +23,8 @@ interface ProjectState {
   updatePlanSource: (planId: string, sourceUrl: string | undefined, sourceType: FloorPlan["sourceType"]) => void;
 }
 
-const STORAGE_KEY = "security-docs-mvp";
+const STORAGE_KEY = "liconex-mvp";
+const LEGACY_STORAGE_KEY = "security-docs-mvp";
 
 function saveSnapshot(projects: Project[], plans: FloorPlan[], devices: Device[], planElements: PlanElement[]) {
   if (typeof window === "undefined") return;
@@ -38,7 +39,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   planElements: mockPlanElements,
   hydrate: () => {
     if (typeof window === "undefined" || get().hydrated) return;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) {
       set({ hydrated: true });
       saveSnapshot(mockProjects, mockPlans, mockDevices, mockPlanElements);
@@ -60,6 +61,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         planElements: migrated.planElements
       });
       saveSnapshot(migrated.projects, migrated.plans, migrated.devices, migrated.planElements);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch {
       set({ hydrated: true });
     }

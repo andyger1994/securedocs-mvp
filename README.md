@@ -1,4 +1,4 @@
-# SecureDocs MVP
+# Liconex MVP
 
 MVP web SaaS para documentacion interactiva profesional de instalaciones de seguridad electronica.
 
@@ -13,7 +13,7 @@ MVP web SaaS para documentacion interactiva profesional de instalaciones de segu
 - Proyectos nuevos con plano en blanco para dibujar desde cero.
 - Separacion por pisos/planos: Piso 1, Piso 2, Piso 3, etc.
 - Capas activables: CCTV, Control de acceso, Alarma, Red y Energia.
-- Editor con drag and drop de Camara, Lector, Sensor, Rack, Switch, UPS y NVR.
+- Editor con drag and drop de dispositivos de CCTV, acceso, alarma, red, energia y audio.
 - Dispositivos movibles sobre el plano.
 - Panel lateral para consultar y editar ficha tecnica basica.
 - Modo visualizacion en `/share/[projectId]` sin herramientas de edicion.
@@ -80,6 +80,9 @@ src/
     device-palette.tsx
     layer-controls.tsx
     plan-canvas.tsx
+    landing-page.tsx
+    liconex-logo.tsx
+    login-page.tsx
     project-workspace.tsx
   lib/
     device-catalog.ts
