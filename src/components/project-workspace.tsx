@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Cable, ExternalLink, ImageOff, Layers, MapPin, MousePointer2, PencilLine, Plus, Square, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Cable, ExternalLink, ImageOff, Layers, MapPin, MousePointer2, PencilLine, Plus, Settings2, Square, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DeviceDetailsPanel } from "@/components/device-details-panel";
@@ -43,6 +43,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
   const [drawingTool, setDrawingTool] = useState<PlanDrawingTool>("select");
   const [cableType, setCableType] = useState<CableRouteType>("underground");
+  const [mobilePanel, setMobilePanel] = useState<"devices" | "details" | null>(null);
 
   useEffect(() => hydrate(), [hydrate]);
 
@@ -110,21 +111,23 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
         </>
       }
     >
-      <section className="flex h-[calc(100vh-4rem)] flex-col">
-        <div className="flex items-center justify-between gap-4 border-b border-line bg-white px-5 py-3">
-          <div>
+      <section className="relative flex h-[calc(100vh-4rem)] flex-col overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-line bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-5">
+          <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-ink-500">{mode === "edit" ? "Editor" : "Vista compartida"}</p>
-            <h1 className="text-lg font-semibold">{project.clientName}</h1>
-            <p className="text-sm text-ink-500">{project.address}</p>
+            <h1 className="truncate text-base font-semibold lg:text-lg">{project.clientName}</h1>
+            <p className="truncate text-sm text-ink-500">{project.address}</p>
           </div>
-          <LayerControls
-            visibleLayers={visibleLayers}
-            onToggle={(layer) => setVisibleLayers((current) => ({ ...current, [layer]: !current[layer] }))}
-          />
+          <div className="-mx-1 overflow-x-auto px-1">
+            <LayerControls
+              visibleLayers={visibleLayers}
+              onToggle={(layer) => setVisibleLayers((current) => ({ ...current, [layer]: !current[layer] }))}
+            />
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-white px-5 py-2">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-3 overflow-x-auto border-b border-line bg-white px-4 py-2 lg:flex-wrap lg:items-center lg:justify-between lg:px-5">
+          <div className="flex shrink-0 items-center gap-2">
             <span className="inline-flex h-9 items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
               <Layers size={15} />
               Pisos
@@ -146,7 +149,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           </div>
           {mode === "edit" ? (
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 transition hover:border-accent-500/50"
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 transition hover:border-accent-500/50"
               onClick={() => {
                 setSelectedDeviceId(undefined);
                 addFloorPlan(project.id);
@@ -159,8 +162,8 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
         </div>
 
         {mode === "edit" ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-white px-5 py-2">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-3 overflow-x-auto border-b border-line bg-white px-4 py-2 lg:flex-wrap lg:items-center lg:justify-between lg:px-5">
+            <div className="flex shrink-0 items-center gap-2">
               <ToolButton active={drawingTool === "select"} icon={<MousePointer2 size={16} />} label="Seleccionar" onClick={() => setDrawingTool("select")} />
               <ToolButton active={drawingTool === "wall"} icon={<PencilLine size={16} />} label="Pared" onClick={() => setDrawingTool("wall")} />
               <ToolButton active={drawingTool === "area"} icon={<Square size={16} />} label="Ambiente" onClick={() => setDrawingTool("area")} />
@@ -193,7 +196,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               </button>
             </div>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-medium text-ink-700 transition hover:border-red-300 hover:text-red-600"
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-medium text-ink-700 transition hover:border-red-300 hover:text-red-600"
               onClick={() => clearPlanElements(plan.id)}
             >
               <Trash2 size={15} />
@@ -203,7 +206,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
         ) : null}
 
         <div className="flex min-h-0 flex-1">
-          {mode === "edit" ? <DevicePalette /> : null}
+          {mode === "edit" ? <DevicePalette className="hidden lg:block" /> : null}
           <div className="min-w-0 flex-1">
             <PlanCanvas
               plan={plan}
@@ -224,17 +227,75 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               onSelectDevice={setSelectedDeviceId}
             />
           </div>
-          <DeviceDetailsPanel device={selectedDevice} readonly={mode === "view"} onClose={() => setSelectedDeviceId(undefined)} />
+          <DeviceDetailsPanel
+            device={selectedDevice}
+            readonly={mode === "view"}
+            onClose={() => setSelectedDeviceId(undefined)}
+            className="hidden lg:block"
+          />
         </div>
         <CableLegend />
+
+        {mode === "edit" ? (
+          <div className="flex items-center gap-2 border-t border-line bg-white p-2 lg:hidden">
+            <button
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md bg-ink-900 px-3 text-sm font-semibold text-white"
+              onClick={() => setMobilePanel("devices")}
+            >
+              <Plus size={17} />
+              Dispositivos
+            </button>
+            <button
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink-800"
+              onClick={() => setMobilePanel("details")}
+            >
+              <Settings2 size={17} />
+              Ficha
+            </button>
+          </div>
+        ) : null}
+
+        {mobilePanel ? (
+          <MobileSheet title={mobilePanel === "devices" ? "Dispositivos" : "Ficha tecnica"} onClose={() => setMobilePanel(null)}>
+            {mobilePanel === "devices" ? (
+              <DevicePalette className="h-full w-full border-r-0 p-0" />
+            ) : (
+              <DeviceDetailsPanel
+                device={selectedDevice}
+                readonly={mode === "view"}
+                onClose={() => {
+                  setSelectedDeviceId(undefined);
+                  setMobilePanel(null);
+                }}
+                className="h-full w-full border-l-0"
+              />
+            )}
+          </MobileSheet>
+        ) : null}
       </section>
     </AppShell>
   );
 }
 
+function MobileSheet({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-ink-900/30 backdrop-blur-sm lg:hidden">
+      <div className="absolute inset-x-0 bottom-0 flex max-h-[82vh] flex-col rounded-t-lg border border-line bg-white shadow-soft">
+        <div className="flex h-12 items-center justify-between border-b border-line px-4">
+          <h2 className="text-sm font-semibold">{title}</h2>
+          <button className="grid h-8 w-8 place-items-center rounded-md border border-line" onClick={onClose} aria-label="Cerrar panel">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function CableLegend() {
   return (
-    <div className="border-t border-line bg-white px-5 py-2">
+    <div className="hidden border-t border-line bg-white px-5 py-2 sm:block">
       <div className="flex flex-wrap items-center gap-4">
         <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">Cableado</span>
         {Object.entries(cableRouteLabels).map(([type, label]) => {

@@ -7,7 +7,7 @@ import type { LayerType } from "@/lib/types";
 
 const layerOrder: LayerType[] = ["cctv", "access", "alarm", "network", "power"];
 
-export function DevicePalette() {
+export function DevicePalette({ className = "" }: { className?: string }) {
   const [openLayers, setOpenLayers] = useState<Record<LayerType, boolean>>({
     cctv: true,
     access: true,
@@ -24,7 +24,7 @@ export function DevicePalette() {
   }, []);
 
   return (
-    <aside className="w-72 shrink-0 overflow-y-auto border-r border-line bg-white p-4">
+    <aside className={`w-72 shrink-0 overflow-y-auto border-r border-line bg-white p-4 ${className}`}>
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-ink-900">Dispositivos</h2>
         <p className="mt-1 text-xs leading-5 text-ink-500">Arrastra un elemento al plano.</p>

@@ -19,23 +19,25 @@ const editableFields: Array<{ key: keyof Device; label: string; type?: string }>
   { key: "technician", label: "Tecnico responsable" }
 ];
 
-const coverageDeviceTypes = new Set(["camera", "light"]);
+const coverageDeviceTypes = new Set(["camera", "light", "sensor"]);
 
 export function DeviceDetailsPanel({
   device,
   readonly,
-  onClose
+  onClose,
+  className = ""
 }: {
   device?: Device;
   readonly?: boolean;
   onClose: () => void;
+  className?: string;
 }) {
   const updateDevice = useProjectStore((state) => state.updateDevice);
   const catalogItem = useMemo(() => deviceCatalog.find((item) => item.type === device?.type), [device?.type]);
 
   if (!device) {
     return (
-      <aside className="w-80 shrink-0 border-l border-line bg-white p-5">
+      <aside className={`w-80 shrink-0 border-l border-line bg-white p-5 ${className}`}>
         <h2 className="text-sm font-semibold">Ficha tecnica</h2>
         <p className="mt-2 text-sm leading-6 text-ink-500">Selecciona un dispositivo para ver y editar su informacion.</p>
       </aside>
@@ -46,7 +48,7 @@ export function DeviceDetailsPanel({
   const hasCoverage = coverageDeviceTypes.has(device.type);
 
   return (
-    <aside className="w-96 shrink-0 overflow-y-auto border-l border-line bg-white">
+    <aside className={`w-96 shrink-0 overflow-y-auto border-l border-line bg-white ${className}`}>
       <div className="sticky top-0 z-10 flex items-start justify-between border-b border-line bg-white p-5">
         <div className="flex gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-ink-900 text-white">{Icon ? <Icon size={18} /> : null}</div>
@@ -79,7 +81,7 @@ export function DeviceDetailsPanel({
         {hasCoverage ? (
           <div className="rounded-lg border border-line bg-ink-50 p-4">
             <h3 className="text-sm font-semibold text-ink-900">
-              {device.type === "camera" ? "Vision" : "Iluminacion"}
+              {device.type === "camera" ? "Vision" : device.type === "light" ? "Iluminacion" : "Cortina"}
             </h3>
             <p className="mt-1 text-xs leading-5 text-ink-500">
               Angulo horizontal y direccion del cono mostrado sobre el plano.
@@ -87,7 +89,7 @@ export function DeviceDetailsPanel({
             <div className="mt-4 grid grid-cols-3 gap-3">
               <NumberField
                 label="Angulo"
-                value={device.coverageAngle ?? (device.type === "camera" ? 105 : 120)}
+                value={device.coverageAngle ?? getDefaultCoverageAngle(device.type)}
                 readonly={readonly}
                 suffix="deg"
                 min={10}
@@ -105,7 +107,7 @@ export function DeviceDetailsPanel({
               />
               <NumberField
                 label="Alcance"
-                value={device.coverageRange ?? (device.type === "camera" ? 190 : 160)}
+                value={device.coverageRange ?? getDefaultCoverageRange(device.type)}
                 readonly={readonly}
                 suffix="px"
                 min={40}
@@ -144,6 +146,20 @@ export function DeviceDetailsPanel({
       </div>
     </aside>
   );
+}
+
+function getDefaultCoverageAngle(type: Device["type"]) {
+  if (type === "camera") return 105;
+  if (type === "light") return 120;
+  if (type === "sensor") return 8;
+  return 90;
+}
+
+function getDefaultCoverageRange(type: Device["type"]) {
+  if (type === "camera") return 190;
+  if (type === "light") return 160;
+  if (type === "sensor") return 220;
+  return 160;
 }
 
 function NumberField({

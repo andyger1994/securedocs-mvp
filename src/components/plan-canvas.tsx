@@ -235,6 +235,10 @@ export function PlanCanvas({
 }
 
 function CoverageSector({ device }: { device: Device }) {
+  if (device.type === "sensor") {
+    return <CurtainCoverage device={device} />;
+  }
+
   const angle = device.coverageAngle ?? (device.type === "camera" ? 105 : 120);
   const direction = device.coverageDirection ?? 0;
   const range = device.coverageRange ?? (device.type === "camera" ? 190 : 160);
@@ -256,6 +260,41 @@ function CoverageSector({ device }: { device: Device }) {
         strokeWidth={2}
         opacity={0.5}
         dash={[6, 5]}
+      />
+    </Group>
+  );
+}
+
+function CurtainCoverage({ device }: { device: Device }) {
+  const angle = device.coverageAngle ?? 8;
+  const direction = device.coverageDirection ?? 0;
+  const range = device.coverageRange ?? 220;
+  const color = layerColors[device.layer];
+
+  return (
+    <Group>
+      <Line
+        points={getSectorPoints(device.x, device.y, range, angle, direction)}
+        closed
+        fill={color}
+        opacity={0.14}
+        stroke={color}
+        strokeWidth={2}
+      />
+      <Line
+        points={[device.x, device.y, ...getDirectionPoint(device.x, device.y, range, direction)]}
+        stroke={color}
+        strokeWidth={3}
+        opacity={0.62}
+        dash={[10, 5]}
+      />
+      <Text
+        x={device.x + 10}
+        y={device.y - 34}
+        text="Cortina"
+        fill={color}
+        fontSize={11}
+        fontStyle="bold"
       />
     </Group>
   );
@@ -724,7 +763,7 @@ function getDeviceLabel(type: DeviceType) {
 }
 
 function hasCoverage(device: Device) {
-  return device.type === "camera" || device.type === "light";
+  return device.type === "camera" || device.type === "light" || device.type === "sensor";
 }
 
 function getSectorPoints(x: number, y: number, range: number, angle: number, direction: number) {

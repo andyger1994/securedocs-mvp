@@ -192,6 +192,9 @@ function getDefaultCoverage(type: DeviceType) {
   if (type === "light") {
     return { coverageAngle: 120, coverageDirection: 0, coverageRange: 160 };
   }
+  if (type === "sensor") {
+    return { coverageAngle: 8, coverageDirection: 0, coverageRange: 220 };
+  }
   return {};
 }
 
