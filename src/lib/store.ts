@@ -15,6 +15,7 @@ interface ProjectState {
   createProject: (clientName: string, address: string) => Project;
   addFloorPlan: (projectId: string) => FloorPlan;
   selectFloorPlan: (projectId: string, planId: string) => void;
+  updateFloorPlanName: (planId: string, name: string) => void;
   addDevice: (projectId: string, planId: string, type: DeviceType, x: number, y: number) => Device;
   moveDevice: (deviceId: string, x: number, y: number) => void;
   updateDevice: (deviceId: string, patch: Partial<Device>) => void;
@@ -108,6 +109,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     );
     set({ projects });
     saveSnapshot(projects, get().plans, get().devices, get().planElements);
+  },
+  updateFloorPlanName: (planId, name) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    const plan = get().plans.find((item) => item.id === planId);
+    const plans = get().plans.map((item) => (item.id === planId ? { ...item, name: trimmedName } : item));
+    const projects = plan ? touchProject(get().projects, plan.projectId) : get().projects;
+    set({ plans, projects });
+    saveSnapshot(projects, plans, get().devices, get().planElements);
   },
   addDevice: (projectId, planId, type, x, y) => {
     const catalogItem = deviceCatalog.find((item) => item.type === type)!;

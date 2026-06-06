@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Cable, ExternalLink, ImageOff, Layers, MapPin, MousePointer2, PencilLine, Plus, Settings2, Square, Trash2, Upload, X } from "lucide-react";
+import { ArrowLeft, Cable, Check, ExternalLink, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DeviceDetailsPanel } from "@/components/device-details-panel";
@@ -38,6 +38,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     moveDevice,
     selectFloorPlan,
     updateDevice,
+    updateFloorPlanName,
     updatePlanSource
   } = useProjectStore();
   const [visibleLayers, setVisibleLayers] = useState(initialLayers);
@@ -45,6 +46,8 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [drawingTool, setDrawingTool] = useState<PlanDrawingTool>("select");
   const [cableType, setCableType] = useState<CableRouteType>("underground");
   const [mobilePanel, setMobilePanel] = useState<"devices" | "details" | null>(null);
+  const [editingFloorId, setEditingFloorId] = useState<string>();
+  const [floorName, setFloorName] = useState("");
 
   useEffect(() => hydrate(), [hydrate]);
 
@@ -133,20 +136,67 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               <Layers size={15} />
               Pisos
             </span>
-            {projectPlans.map((floorPlan) => (
-              <button
-                key={floorPlan.id}
-                className={`h-9 rounded-md border px-3 text-xs font-semibold transition ${
-                  floorPlan.id === plan.id ? "border-accent-500 bg-accent-500 text-white" : "border-line bg-white text-ink-700 hover:border-accent-500/50"
-                }`}
-                onClick={() => {
-                  setSelectedDeviceId(undefined);
-                  selectFloorPlan(project.id, floorPlan.id);
-                }}
-              >
-                {floorPlan.name}
-              </button>
-            ))}
+            {projectPlans.map((floorPlan) => {
+              const active = floorPlan.id === plan.id;
+              const editing = editingFloorId === floorPlan.id;
+
+              if (editing) {
+                return (
+                  <form
+                    key={floorPlan.id}
+                    className="flex h-9 items-center overflow-hidden rounded-md border border-accent-500 bg-white"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      updateFloorPlanName(floorPlan.id, floorName);
+                      setEditingFloorId(undefined);
+                    }}
+                  >
+                    <input
+                      className="h-full w-32 px-3 text-xs font-semibold text-ink-900 outline-none"
+                      value={floorName}
+                      onChange={(event) => setFloorName(event.target.value)}
+                      autoFocus
+                      onBlur={() => {
+                        updateFloorPlanName(floorPlan.id, floorName);
+                        setEditingFloorId(undefined);
+                      }}
+                    />
+                    <button className="grid h-full w-9 place-items-center bg-accent-500 text-white" aria-label="Guardar nombre">
+                      <Check size={15} />
+                    </button>
+                  </form>
+                );
+              }
+
+              return (
+                <span key={floorPlan.id} className="flex h-9 overflow-hidden rounded-md border border-line bg-white">
+                  <button
+                    className={`px-3 text-xs font-semibold transition ${
+                      active ? "bg-accent-500 text-white" : "text-ink-700 hover:bg-ink-50"
+                    }`}
+                    onClick={() => {
+                      setSelectedDeviceId(undefined);
+                      selectFloorPlan(project.id, floorPlan.id);
+                    }}
+                  >
+                    {floorPlan.name}
+                  </button>
+                  {mode === "edit" && active ? (
+                    <button
+                      className="grid w-9 place-items-center border-l border-line text-ink-500 transition hover:text-accent-600"
+                      onClick={() => {
+                        setFloorName(floorPlan.name);
+                        setEditingFloorId(floorPlan.id);
+                      }}
+                      aria-label={`Renombrar ${floorPlan.name}`}
+                      title="Renombrar piso"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  ) : null}
+                </span>
+              );
+            })}
           </div>
           {mode === "edit" ? (
             <button

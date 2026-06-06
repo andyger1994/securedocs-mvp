@@ -197,7 +197,11 @@ export function PlanCanvas({
             ))}
             {draft ? <DraftPlanElement tool={drawingTool} draft={draft} /> : null}
             {visibleDevices.filter(hasCoverage).map((device) => (
-              <CoverageSector key={`coverage-${device.id}`} device={device} />
+              <CoverageSector
+                key={`coverage-${device.id}`}
+                device={device}
+                selected={device.id === selectedDeviceId}
+              />
             ))}
             {deviceClusters.map((cluster) => (
               cluster.devices.length === 1 ? (
@@ -238,9 +242,9 @@ export function PlanCanvas({
   );
 }
 
-function CoverageSector({ device }: { device: Device }) {
+function CoverageSector({ device, selected }: { device: Device; selected: boolean }) {
   if (device.type === "sensor") {
-    return <CurtainCoverage device={device} />;
+    return <CurtainCoverage device={device} selected={selected} />;
   }
 
   const angle = device.coverageAngle ?? (device.type === "camera" ? 105 : 120);
@@ -254,22 +258,24 @@ function CoverageSector({ device }: { device: Device }) {
         points={getSectorPoints(device.x, device.y, range, angle, direction)}
         closed
         fill={color}
-        opacity={0.16}
+        opacity={selected ? 0.16 : 0.025}
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={selected ? 2 : 1}
       />
-      <Line
-        points={[device.x, device.y, ...getDirectionPoint(device.x, device.y, range, direction)]}
-        stroke={color}
-        strokeWidth={2}
-        opacity={0.5}
-        dash={[6, 5]}
-      />
+      {selected ? (
+        <Line
+          points={[device.x, device.y, ...getDirectionPoint(device.x, device.y, range, direction)]}
+          stroke={color}
+          strokeWidth={2}
+          opacity={0.55}
+          dash={[6, 5]}
+        />
+      ) : null}
     </Group>
   );
 }
 
-function CurtainCoverage({ device }: { device: Device }) {
+function CurtainCoverage({ device, selected }: { device: Device; selected: boolean }) {
   const angle = device.coverageAngle ?? 8;
   const direction = device.coverageDirection ?? 0;
   const range = device.coverageRange ?? 220;
@@ -281,25 +287,29 @@ function CurtainCoverage({ device }: { device: Device }) {
         points={getSectorPoints(device.x, device.y, range, angle, direction)}
         closed
         fill={color}
-        opacity={0.14}
+        opacity={selected ? 0.14 : 0.025}
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={selected ? 2 : 1}
       />
-      <Line
-        points={[device.x, device.y, ...getDirectionPoint(device.x, device.y, range, direction)]}
-        stroke={color}
-        strokeWidth={3}
-        opacity={0.62}
-        dash={[10, 5]}
-      />
-      <Text
-        x={device.x + 10}
-        y={device.y - 34}
-        text="Cortina"
-        fill={color}
-        fontSize={11}
-        fontStyle="bold"
-      />
+      {selected ? (
+        <>
+          <Line
+            points={[device.x, device.y, ...getDirectionPoint(device.x, device.y, range, direction)]}
+            stroke={color}
+            strokeWidth={3}
+            opacity={0.62}
+            dash={[10, 5]}
+          />
+          <Text
+            x={device.x + 10}
+            y={device.y - 34}
+            text="Cortina"
+            fill={color}
+            fontSize={11}
+            fontStyle="bold"
+          />
+        </>
+      ) : null}
     </Group>
   );
 }
@@ -555,13 +565,13 @@ function DeviceClusterNode({
           onRotateDevice(selectedDevice.id, normalizeAngle(currentDirection + step));
         }}
       >
-        <Circle radius={22} fill="#121722" stroke={selected ? "#2f6df6" : "#ffffff"} strokeWidth={selected ? 4 : 3} shadowBlur={12} shadowOpacity={0.22} />
-        <Circle radius={15} fill="#ffffff" opacity={0.12} />
-        <Text text={String(cluster.devices.length)} x={-11} y={-7} width={22} align="center" fill="#ffffff" fontSize={13} fontStyle="bold" />
+        <Circle radius={16} fill="#121722" stroke={selected ? "#2f6df6" : "#ffffff"} strokeWidth={selected ? 3 : 2} shadowBlur={9} shadowOpacity={0.2} />
+        <Circle radius={11} fill="#ffffff" opacity={0.12} />
+        <Text text={String(cluster.devices.length)} x={-9} y={-6} width={18} align="center" fill="#ffffff" fontSize={10} fontStyle="bold" />
       </Group>
 
       {expanded ? (
-        <Group x={34} y={-Math.max(24, popupHeight / 2)}>
+        <Group x={24} y={-Math.max(24, popupHeight / 2)}>
           <Rect width={popupWidth} height={popupHeight} fill="#ffffff" stroke="#dfe4ee" strokeWidth={1} cornerRadius={8} shadowBlur={18} shadowOpacity={0.18} />
           {rows.map((device, index) => (
             <Group
