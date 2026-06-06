@@ -21,6 +21,8 @@ interface ProjectState {
   updateDevice: (deviceId: string, patch: Partial<Device>) => void;
   removeDevice: (deviceId: string) => void;
   addPlanElement: (projectId: string, planId: string, type: PlanElementType, element: Omit<PlanElement, "id" | "projectId" | "planId" | "type">) => void;
+  updatePlanElement: (elementId: string, patch: Partial<PlanElement>) => void;
+  removePlanElement: (elementId: string) => void;
   clearPlanElements: (planId: string) => void;
   updatePlanSource: (planId: string, sourceUrl: string | undefined, sourceType: FloorPlan["sourceType"]) => void;
 }
@@ -186,6 +188,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ planElements, projects });
     saveSnapshot(projects, get().plans, get().devices, planElements);
   },
+  updatePlanElement: (elementId, patch) => {
+    const element = get().planElements.find((item) => item.id === elementId);
+    if (!element) return;
+    const planElements = get().planElements.map((item) => (item.id === elementId ? { ...item, ...patch } : item));
+    const projects = touchProject(get().projects, element.projectId);
+    set({ planElements, projects });
+    saveSnapshot(projects, get().plans, get().devices, planElements);
+  },
+  removePlanElement: (elementId) => {
+    const element = get().planElements.find((item) => item.id === elementId);
+    if (!element) return;
+    const planElements = get().planElements.filter((item) => item.id !== elementId);
+    const projects = touchProject(get().projects, element.projectId);
+    set({ planElements, projects });
+    saveSnapshot(projects, get().plans, get().devices, planElements);
+  },
   clearPlanElements: (planId) => {
     const plan = get().plans.find((item) => item.id === planId);
     const planElements = get().planElements.filter((element) => element.planId !== planId);
@@ -247,5 +265,9 @@ function migrateSnapshot(projects: Project[], plans: FloorPlan[], devices: Devic
     return { ...project, planId: plan.id };
   });
 
-  return { projects: migratedProjects, plans: nextPlans, devices, planElements };
+  const migratedDevices = devices.map((device) =>
+    device.type === "video_display" ? { ...device, layer: "access" as const } : device
+  );
+
+  return { projects: migratedProjects, plans: nextPlans, devices: migratedDevices, planElements };
 }

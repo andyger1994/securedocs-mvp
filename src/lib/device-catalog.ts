@@ -12,6 +12,7 @@ import {
   PcCase,
   RadioReceiver,
   Router,
+  ScanFace,
   Server,
   ShieldCheck,
   Speaker,
@@ -47,6 +48,7 @@ export const deviceCatalog: Array<{
 }> = [
   { type: "camera", label: "Camara", layer: "cctv", icon: Camera },
   { type: "reader", label: "Lector de acceso", layer: "access", icon: KeyRound },
+  { type: "face", label: "Face", layer: "access", icon: ScanFace },
   { type: "sensor", label: "Patrol", layer: "alarm", icon: RadioReceiver },
   { type: "rack", label: "Rack", layer: "network", icon: Server },
   { type: "switch", label: "Switch", layer: "network", icon: Router },
@@ -66,6 +68,6 @@ export const deviceCatalog: Array<{
   { type: "contactor", label: "Contactora", layer: "power", icon: ToggleLeft },
   { type: "battery_bank", label: "Banco de baterias", layer: "power", icon: BatteryCharging },
   { type: "keypad", label: "Teclado", layer: "alarm", icon: Keyboard },
-  { type: "video_display", label: "Videopantalla", layer: "cctv", icon: Monitor },
+  { type: "video_display", label: "Videopantalla", layer: "access", icon: Monitor },
   { type: "intercom", label: "Portero", layer: "access", icon: TabletSmartphone }
 ];

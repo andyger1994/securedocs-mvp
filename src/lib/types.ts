@@ -3,6 +3,7 @@ export type LayerType = "cctv" | "access" | "alarm" | "network" | "power";
 export type DeviceType =
   | "camera"
   | "reader"
+  | "face"
   | "sensor"
   | "rack"
   | "switch"

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Cable, Check, ExternalLink, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Upload, X } from "lucide-react";
+import { ArrowLeft, Cable, Check, ExternalLink, Eye, EyeOff, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DeviceDetailsPanel } from "@/components/device-details-panel";
@@ -36,13 +36,17 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     addPlanElement,
     clearPlanElements,
     moveDevice,
+    removePlanElement,
     selectFloorPlan,
     updateDevice,
     updateFloorPlanName,
+    updatePlanElement,
     updatePlanSource
   } = useProjectStore();
   const [visibleLayers, setVisibleLayers] = useState(initialLayers);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
+  const [selectedPlanElementId, setSelectedPlanElementId] = useState<string>();
+  const [showJunctions, setShowJunctions] = useState(true);
   const [drawingTool, setDrawingTool] = useState<PlanDrawingTool>("select");
   const [cableType, setCableType] = useState<CableRouteType>("underground");
   const [mobilePanel, setMobilePanel] = useState<"devices" | "details" | null>(null);
@@ -220,6 +224,31 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               <ToolButton active={drawingTool === "area"} icon={<Square size={16} />} label="Ambiente" onClick={() => setDrawingTool("area")} />
               <ToolButton active={drawingTool === "cable"} icon={<Cable size={16} />} label="Cableado" onClick={() => setDrawingTool("cable")} />
               <ToolButton active={drawingTool === "junction"} icon={<MapPin size={16} />} label="Registro" onClick={() => setDrawingTool("junction")} />
+              <button
+                className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold transition ${
+                  showJunctions ? "border-line bg-white text-ink-700" : "border-ink-200 bg-ink-100 text-ink-500"
+                }`}
+                onClick={() => {
+                  setShowJunctions((current) => !current);
+                  setSelectedPlanElementId(undefined);
+                }}
+                title={showJunctions ? "Ocultar registros" : "Mostrar registros"}
+              >
+                {showJunctions ? <Eye size={15} /> : <EyeOff size={15} />}
+                Registros
+              </button>
+              {selectedPlanElementId ? (
+                <button
+                  className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 bg-white px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                  onClick={() => {
+                    removePlanElement(selectedPlanElementId);
+                    setSelectedPlanElementId(undefined);
+                  }}
+                >
+                  <Trash2 size={15} />
+                  Eliminar registro
+                </button>
+              ) : null}
               {drawingTool === "cable" ? (
                 <>
                   <select
@@ -267,16 +296,27 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               cableType={cableType}
               activeDeviceId={selectedDeviceId}
               visibleLayers={visibleLayers}
+              showJunctions={showJunctions}
               selectedDeviceId={selectedDeviceId}
+              selectedPlanElementId={selectedPlanElementId}
               readonly={mode === "view"}
               onAddDevice={(type: DeviceType, x, y) => {
                 const created = addDevice(project.id, plan.id, type, x, y);
+                setVisibleLayers((current) => ({ ...current, [created.layer]: true }));
                 setSelectedDeviceId(created.id);
               }}
               onAddPlanElement={(type, element) => addPlanElement(project.id, plan.id, type, element)}
               onMoveDevice={moveDevice}
+              onMovePlanElement={(elementId, x, y) => updatePlanElement(elementId, { x, y })}
               onRotateDevice={(deviceId, direction) => updateDevice(deviceId, { coverageDirection: direction })}
-              onSelectDevice={setSelectedDeviceId}
+              onSelectDevice={(deviceId) => {
+                setSelectedPlanElementId(undefined);
+                setSelectedDeviceId(deviceId);
+              }}
+              onSelectPlanElement={(elementId) => {
+                setSelectedDeviceId(undefined);
+                setSelectedPlanElementId(elementId);
+              }}
             />
           </div>
           <DeviceDetailsPanel

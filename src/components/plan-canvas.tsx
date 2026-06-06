@@ -18,14 +18,18 @@ export function PlanCanvas({
   drawingTool,
   cableType,
   visibleLayers,
+  showJunctions,
   selectedDeviceId,
+  selectedPlanElementId,
   activeDeviceId,
   readonly,
   onAddDevice,
   onAddPlanElement,
   onMoveDevice,
+  onMovePlanElement,
   onRotateDevice,
-  onSelectDevice
+  onSelectDevice,
+  onSelectPlanElement
 }: {
   plan: FloorPlan;
   devices: Device[];
@@ -33,14 +37,18 @@ export function PlanCanvas({
   drawingTool: PlanDrawingTool;
   cableType: CableRouteType;
   visibleLayers: Record<LayerType, boolean>;
+  showJunctions: boolean;
   selectedDeviceId?: string;
+  selectedPlanElementId?: string;
   activeDeviceId?: string;
   readonly?: boolean;
   onAddDevice: (type: DeviceType, x: number, y: number) => void;
   onAddPlanElement: (type: PlanElementType, element: Omit<PlanElement, "id" | "projectId" | "planId" | "type">) => void;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
+  onMovePlanElement: (elementId: string, x: number, y: number) => void;
   onRotateDevice: (deviceId: string, direction: number) => void;
   onSelectDevice: (deviceId: string) => void;
+  onSelectPlanElement: (elementId: string) => void;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
@@ -193,7 +201,17 @@ export function PlanCanvas({
               <BlankPlan plan={plan} />
             )}
             {planElements.map((element) => (
-              <PlanElementNode key={element.id} element={element} activeDeviceId={activeDeviceId} />
+              <PlanElementNode
+                key={element.id}
+                element={element}
+                activeDeviceId={activeDeviceId}
+                showJunctions={showJunctions}
+                selected={element.id === selectedPlanElementId}
+                readonly={readonly}
+                drawingTool={drawingTool}
+                onMove={(x, y) => onMovePlanElement(element.id, x, y)}
+                onSelect={() => onSelectPlanElement(element.id)}
+              />
             ))}
             {draft ? <DraftPlanElement tool={drawingTool} draft={draft} /> : null}
             {visibleDevices.filter(hasCoverage).map((device) => (
@@ -339,7 +357,25 @@ function BlankPlan({ plan }: { plan: FloorPlan }) {
   );
 }
 
-function PlanElementNode({ element, activeDeviceId }: { element: PlanElement; activeDeviceId?: string }) {
+function PlanElementNode({
+  element,
+  activeDeviceId,
+  showJunctions,
+  selected,
+  readonly,
+  drawingTool,
+  onMove,
+  onSelect
+}: {
+  element: PlanElement;
+  activeDeviceId?: string;
+  showJunctions: boolean;
+  selected: boolean;
+  readonly?: boolean;
+  drawingTool: PlanDrawingTool;
+  onMove: (x: number, y: number) => void;
+  onSelect: () => void;
+}) {
   if (element.type === "wall") {
     return <Line points={element.points ?? []} stroke="#121722" strokeWidth={6} lineCap="round" lineJoin="round" />;
   }
@@ -387,19 +423,38 @@ function PlanElementNode({ element, activeDeviceId }: { element: PlanElement; ac
   }
 
   if (element.type === "junction") {
+    if (!showJunctions) return null;
     const isLinkedToActiveDevice = Boolean(activeDeviceId && element.deviceId === activeDeviceId);
     const shouldHide = Boolean(activeDeviceId && element.deviceId !== activeDeviceId);
 
     if (shouldHide) return null;
 
     return (
-      <Group x={element.x} y={element.y}>
+      <Group
+        x={element.x}
+        y={element.y}
+        draggable={!readonly && drawingTool === "select"}
+        onClick={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
+        onTap={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
+        onDragStart={(event) => {
+          event.cancelBubble = true;
+          onSelect();
+        }}
+        onDragEnd={(event) => {
+          event.cancelBubble = true;
+          onMove(event.target.x(), event.target.y());
+        }}
+      >
+        {selected ? <Circle radius={16} fill="rgba(47, 109, 246, 0.1)" stroke="#2f6df6" strokeWidth={2} dash={[4, 3]} /> : null}
         <Circle radius={isLinkedToActiveDevice ? 12 : 10} fill={junctionStyle.fill} stroke={junctionStyle.color} strokeWidth={3} shadowBlur={8} shadowOpacity={0.12} />
         <Line points={[-5, 0, 5, 0]} stroke={junctionStyle.color} strokeWidth={2} lineCap="round" />
         <Line points={[0, -5, 0, 5]} stroke={junctionStyle.color} strokeWidth={2} lineCap="round" />
-        {!activeDeviceId || isLinkedToActiveDevice ? (
-          <Text x={-24} y={14} width={48} align="center" text={element.label ?? "Registro"} fill={junctionStyle.color} fontSize={10} fontStyle="bold" />
-        ) : null}
       </Group>
     );
   }
@@ -623,6 +678,13 @@ function DeviceIcon({ device, selected }: { device: Device; selected: boolean })
           <Line points={[-3, -5, 3, -5]} stroke={color} strokeWidth={2} lineCap="round" />
           <Line points={[-3, 0, 3, 0]} stroke={color} strokeWidth={2} lineCap="round" />
           <Circle y={6} radius={2} fill={color} />
+        </Group>
+      ) : null}
+      {device.type === "face" ? (
+        <Group>
+          <Rect x={-10} y={-10} width={20} height={20} stroke="#ffffff" strokeWidth={2.2} cornerRadius={4} />
+          <Circle y={-3} radius={3.5} fill="#ffffff" />
+          <Line points={[-6, 7, -4, 3, 0, 1, 4, 3, 6, 7]} stroke="#ffffff" strokeWidth={2} lineCap="round" lineJoin="round" />
         </Group>
       ) : null}
       {device.type === "sensor" ? (
