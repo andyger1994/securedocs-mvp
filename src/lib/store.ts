@@ -130,6 +130,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       notes: "",
       x,
       y,
+      markerSize: 68,
       ...getDefaultCoverage(type),
       files: []
     };

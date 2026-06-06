@@ -117,5 +117,6 @@ export interface Device {
   coverageAngle?: number;
   coverageDirection?: number;
   coverageRange?: number;
+  markerSize?: number;
   files: DeviceFile[];
 }

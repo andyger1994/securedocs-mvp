@@ -595,9 +595,10 @@ function DeviceClusterNode({
 
 function DeviceIcon({ device, selected }: { device: Device; selected: boolean }) {
   const color = layerColors[device.layer];
+  const markerScale = clamp((device.markerSize ?? 68) / 100, 0.45, 1.1);
 
   return (
-    <Group scaleX={0.76} scaleY={0.76}>
+    <Group scaleX={markerScale} scaleY={markerScale}>
       <Circle radius={selected ? 22 : 18} fill={color} stroke={selected ? "#121722" : "#ffffff"} strokeWidth={selected ? 4 : 3} shadowBlur={10} shadowOpacity={0.16} />
       {device.type === "camera" ? (
         <Group>

@@ -79,6 +79,32 @@ export function DeviceDetailsPanel({
           </label>
         ))}
 
+        <div className="rounded-lg border border-line bg-ink-50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-ink-900">Tamaño en plano</h3>
+              <p className="mt-1 text-xs text-ink-500">Ajusta solamente el icono del dispositivo.</p>
+            </div>
+            <span className="rounded-md border border-line bg-white px-2 py-1 text-xs font-semibold text-ink-700">
+              {device.markerSize ?? 68}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min={45}
+            max={110}
+            step={1}
+            value={device.markerSize ?? 68}
+            disabled={readonly}
+            onChange={(event) => updateDevice(device.id, { markerSize: Number(event.target.value) })}
+            className="mt-4 w-full accent-accent-500"
+          />
+          <div className="mt-1 flex justify-between text-[10px] font-medium uppercase tracking-wide text-ink-500">
+            <span>Pequeño</span>
+            <span>Grande</span>
+          </div>
+        </div>
+
         {hasCoverage ? (
           <div className="rounded-lg border border-line bg-ink-50 p-4">
             <h3 className="text-sm font-semibold text-ink-900">
