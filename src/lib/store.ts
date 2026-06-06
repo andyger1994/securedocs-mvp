@@ -18,6 +18,7 @@ interface ProjectState {
   addDevice: (projectId: string, planId: string, type: DeviceType, x: number, y: number) => Device;
   moveDevice: (deviceId: string, x: number, y: number) => void;
   updateDevice: (deviceId: string, patch: Partial<Device>) => void;
+  removeDevice: (deviceId: string) => void;
   addPlanElement: (projectId: string, planId: string, type: PlanElementType, element: Omit<PlanElement, "id" | "projectId" | "planId" | "type">) => void;
   clearPlanElements: (planId: string) => void;
   updatePlanSource: (planId: string, sourceUrl: string | undefined, sourceType: FloorPlan["sourceType"]) => void;
@@ -151,6 +152,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const projects = device ? touchProject(get().projects, device.projectId) : get().projects;
     set({ devices, projects });
     saveSnapshot(projects, get().plans, devices, get().planElements);
+  },
+  removeDevice: (deviceId) => {
+    const device = get().devices.find((item) => item.id === deviceId);
+    if (!device) return;
+    const devices = get().devices.filter((item) => item.id !== deviceId);
+    const planElements = get().planElements.filter((element) => element.deviceId !== deviceId);
+    const projects = touchProject(get().projects, device.projectId);
+    set({ devices, planElements, projects });
+    saveSnapshot(projects, get().plans, devices, planElements);
   },
   addPlanElement: (projectId, planId, type, element) => {
     const planElement: PlanElement = {

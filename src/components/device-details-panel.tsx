@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, ImagePlus, X } from "lucide-react";
+import { FileText, ImagePlus, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 import { deviceCatalog, layerLabels } from "@/lib/device-catalog";
 import { useProjectStore } from "@/lib/store";
@@ -33,6 +33,7 @@ export function DeviceDetailsPanel({
   className?: string;
 }) {
   const updateDevice = useProjectStore((state) => state.updateDevice);
+  const removeDevice = useProjectStore((state) => state.removeDevice);
   const catalogItem = useMemo(() => deviceCatalog.find((item) => item.type === device?.type), [device?.type]);
 
   if (!device) {
@@ -143,6 +144,20 @@ export function DeviceDetailsPanel({
           </div>
           <p className="mt-2 text-xs leading-5 text-ink-500">TODO: guardar manuales, certificados y PDFs asociados al dispositivo.</p>
         </div>
+
+        {!readonly ? (
+          <button
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+            onClick={() => {
+              if (!window.confirm(`Eliminar "${device.name}" y sus recorridos vinculados?`)) return;
+              removeDevice(device.id);
+              onClose();
+            }}
+          >
+            <Trash2 size={16} />
+            Eliminar dispositivo
+          </button>
+        ) : null}
       </div>
     </aside>
   );

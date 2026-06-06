@@ -37,6 +37,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     clearPlanElements,
     moveDevice,
     selectFloorPlan,
+    updateDevice,
     updatePlanSource
   } = useProjectStore();
   const [visibleLayers, setVisibleLayers] = useState(initialLayers);
@@ -224,6 +225,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               }}
               onAddPlanElement={(type, element) => addPlanElement(project.id, plan.id, type, element)}
               onMoveDevice={moveDevice}
+              onRotateDevice={(deviceId, direction) => updateDevice(deviceId, { coverageDirection: direction })}
               onSelectDevice={setSelectedDeviceId}
             />
           </div>

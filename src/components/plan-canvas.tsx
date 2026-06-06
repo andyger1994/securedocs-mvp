@@ -9,7 +9,7 @@ import type { CableRouteType, Device, DeviceType, FloorPlan, LayerType, PlanDraw
 
 const CANVAS_WIDTH = 1120;
 const CANVAS_HEIGHT = 720;
-const CLUSTER_DISTANCE = 44;
+const CLUSTER_DISTANCE = 36;
 
 export function PlanCanvas({
   plan,
@@ -24,6 +24,7 @@ export function PlanCanvas({
   onAddDevice,
   onAddPlanElement,
   onMoveDevice,
+  onRotateDevice,
   onSelectDevice
 }: {
   plan: FloorPlan;
@@ -38,6 +39,7 @@ export function PlanCanvas({
   onAddDevice: (type: DeviceType, x: number, y: number) => void;
   onAddPlanElement: (type: PlanElementType, element: Omit<PlanElement, "id" | "projectId" | "planId" | "type">) => void;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
+  onRotateDevice: (deviceId: string, direction: number) => void;
   onSelectDevice: (deviceId: string) => void;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -208,6 +210,7 @@ export function PlanCanvas({
                     setExpandedClusterId(null);
                     onMoveDevice(deviceId, x, y);
                   }}
+                  onRotateDevice={onRotateDevice}
                   onSelectDevice={(deviceId) => {
                     setExpandedClusterId(null);
                     onSelectDevice(deviceId);
@@ -220,6 +223,7 @@ export function PlanCanvas({
                   expanded={expandedClusterId === cluster.id}
                   selectedDeviceId={selectedDeviceId}
                   onToggle={() => setExpandedClusterId((current) => (current === cluster.id ? null : cluster.id))}
+                  onRotateDevice={onRotateDevice}
                   onSelectDevice={(deviceId) => {
                     setExpandedClusterId(null);
                     onSelectDevice(deviceId);
@@ -468,12 +472,14 @@ function DeviceNode({
   selected,
   readonly,
   onMoveDevice,
+  onRotateDevice,
   onSelectDevice
 }: {
   device: Device;
   selected: boolean;
   readonly?: boolean;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
+  onRotateDevice: (deviceId: string, direction: number) => void;
   onSelectDevice: (deviceId: string) => void;
 }) {
   return (
@@ -493,6 +499,14 @@ function DeviceNode({
         event.cancelBubble = true;
         onMoveDevice(device.id, event.target.x(), event.target.y());
       }}
+      onWheel={(event) => {
+        if (readonly || !hasCoverage(device)) return;
+        event.evt.preventDefault();
+        event.cancelBubble = true;
+        const currentDirection = device.coverageDirection ?? 0;
+        const step = event.evt.deltaY > 0 ? 5 : -5;
+        onRotateDevice(device.id, normalizeAngle(currentDirection + step));
+      }}
     >
       <DeviceIcon device={device} selected={selected} />
     </Group>
@@ -504,15 +518,18 @@ function DeviceClusterNode({
   expanded,
   selectedDeviceId,
   onToggle,
+  onRotateDevice,
   onSelectDevice
 }: {
   cluster: DeviceCluster;
   expanded: boolean;
   selectedDeviceId?: string;
   onToggle: () => void;
+  onRotateDevice: (deviceId: string, direction: number) => void;
   onSelectDevice: (deviceId: string) => void;
 }) {
   const selected = cluster.devices.some((device) => device.id === selectedDeviceId);
+  const selectedDevice = cluster.devices.find((device) => device.id === selectedDeviceId);
   const rows = cluster.devices.slice(0, 8);
   const popupWidth = 190;
   const rowHeight = 30;
@@ -529,10 +546,18 @@ function DeviceClusterNode({
           event.cancelBubble = true;
           onToggle();
         }}
+        onWheel={(event) => {
+          if (!selectedDevice || !hasCoverage(selectedDevice)) return;
+          event.evt.preventDefault();
+          event.cancelBubble = true;
+          const currentDirection = selectedDevice.coverageDirection ?? 0;
+          const step = event.evt.deltaY > 0 ? 5 : -5;
+          onRotateDevice(selectedDevice.id, normalizeAngle(currentDirection + step));
+        }}
       >
-        <Circle radius={28} fill="#121722" stroke={selected ? "#2f6df6" : "#ffffff"} strokeWidth={selected ? 5 : 3} shadowBlur={14} shadowOpacity={0.22} />
-        <Circle radius={20} fill="#ffffff" opacity={0.12} />
-        <Text text={String(cluster.devices.length)} x={-14} y={-9} width={28} align="center" fill="#ffffff" fontSize={16} fontStyle="bold" />
+        <Circle radius={22} fill="#121722" stroke={selected ? "#2f6df6" : "#ffffff"} strokeWidth={selected ? 4 : 3} shadowBlur={12} shadowOpacity={0.22} />
+        <Circle radius={15} fill="#ffffff" opacity={0.12} />
+        <Text text={String(cluster.devices.length)} x={-11} y={-7} width={22} align="center" fill="#ffffff" fontSize={13} fontStyle="bold" />
       </Group>
 
       {expanded ? (
@@ -572,7 +597,7 @@ function DeviceIcon({ device, selected }: { device: Device; selected: boolean })
   const color = layerColors[device.layer];
 
   return (
-    <Group>
+    <Group scaleX={0.76} scaleY={0.76}>
       <Circle radius={selected ? 22 : 18} fill={color} stroke={selected ? "#121722" : "#ffffff"} strokeWidth={selected ? 4 : 3} shadowBlur={10} shadowOpacity={0.16} />
       {device.type === "camera" ? (
         <Group>
@@ -783,6 +808,10 @@ function getSectorPoints(x: number, y: number, range: number, angle: number, dir
 function getDirectionPoint(x: number, y: number, range: number, direction: number) {
   const radians = (direction * Math.PI) / 180;
   return [x + Math.cos(radians) * range, y + Math.sin(radians) * range];
+}
+
+function normalizeAngle(angle: number) {
+  return ((angle % 360) + 360) % 360;
 }
 
 function clamp(value: number, min: number, max: number) {
