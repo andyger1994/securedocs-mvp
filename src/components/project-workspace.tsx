@@ -45,6 +45,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   } = useProjectStore();
   const [visibleLayers, setVisibleLayers] = useState(initialLayers);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
+  const [visibleCoverageDeviceIds, setVisibleCoverageDeviceIds] = useState<string[]>([]);
   const [selectedPlanElementId, setSelectedPlanElementId] = useState<string>();
   const [showJunctions, setShowJunctions] = useState(true);
   const [drawingTool, setDrawingTool] = useState<PlanDrawingTool>("select");
@@ -219,7 +220,15 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
         {mode === "edit" ? (
           <div className="flex gap-3 overflow-x-auto border-b border-line bg-white px-4 py-2 lg:flex-wrap lg:items-center lg:justify-between lg:px-5">
             <div className="flex shrink-0 items-center gap-2">
-              <ToolButton active={drawingTool === "select"} icon={<MousePointer2 size={16} />} label="Seleccionar" onClick={() => setDrawingTool("select")} />
+              <ToolButton
+                active={drawingTool === "select"}
+                icon={<MousePointer2 size={16} />}
+                label="Seleccionar"
+                onClick={() => {
+                  setDrawingTool("select");
+                  setSelectedDeviceId(undefined);
+                }}
+              />
               <ToolButton active={drawingTool === "wall"} icon={<PencilLine size={16} />} label="Pared" onClick={() => setDrawingTool("wall")} />
               <ToolButton active={drawingTool === "area"} icon={<Square size={16} />} label="Ambiente" onClick={() => setDrawingTool("area")} />
               <ToolButton active={drawingTool === "cable"} icon={<Cable size={16} />} label="Cableado" onClick={() => setDrawingTool("cable")} />
@@ -247,6 +256,15 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                 >
                   <Trash2 size={15} />
                   Eliminar registro
+                </button>
+              ) : null}
+              {visibleCoverageDeviceIds.length > 0 ? (
+                <button
+                  className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 transition hover:border-accent-500/50"
+                  onClick={() => setVisibleCoverageDeviceIds([])}
+                >
+                  <EyeOff size={15} />
+                  Ocultar alcances ({visibleCoverageDeviceIds.length})
                 </button>
               ) : null}
               {drawingTool === "cable" ? (
@@ -297,6 +315,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
               activeDeviceId={selectedDeviceId}
               visibleLayers={visibleLayers}
               showJunctions={showJunctions}
+              visibleCoverageDeviceIds={visibleCoverageDeviceIds}
               selectedDeviceId={selectedDeviceId}
               selectedPlanElementId={selectedPlanElementId}
               readonly={mode === "view"}
@@ -304,14 +323,25 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                 const created = addDevice(project.id, plan.id, type, x, y);
                 setVisibleLayers((current) => ({ ...current, [created.layer]: true }));
                 setSelectedDeviceId(created.id);
+                if (created.type === "camera" || created.type === "light" || created.type === "sensor") {
+                  setVisibleCoverageDeviceIds((current) => [...new Set([...current, created.id])]);
+                }
               }}
               onAddPlanElement={(type, element) => addPlanElement(project.id, plan.id, type, element)}
               onMoveDevice={moveDevice}
               onMovePlanElement={(elementId, x, y) => updatePlanElement(elementId, { x, y })}
+              onRemovePlanElement={(elementId) => {
+                removePlanElement(elementId);
+                setSelectedPlanElementId(undefined);
+              }}
               onRotateDevice={(deviceId, direction) => updateDevice(deviceId, { coverageDirection: direction })}
               onSelectDevice={(deviceId) => {
                 setSelectedPlanElementId(undefined);
                 setSelectedDeviceId(deviceId);
+                const device = projectDevices.find((item) => item.id === deviceId);
+                if (device && (device.type === "camera" || device.type === "light" || device.type === "sensor")) {
+                  setVisibleCoverageDeviceIds((current) => [...new Set([...current, deviceId])]);
+                }
               }}
               onSelectPlanElement={(elementId) => {
                 setSelectedDeviceId(undefined);

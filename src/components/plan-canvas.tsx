@@ -19,6 +19,7 @@ export function PlanCanvas({
   cableType,
   visibleLayers,
   showJunctions,
+  visibleCoverageDeviceIds,
   selectedDeviceId,
   selectedPlanElementId,
   activeDeviceId,
@@ -27,6 +28,7 @@ export function PlanCanvas({
   onAddPlanElement,
   onMoveDevice,
   onMovePlanElement,
+  onRemovePlanElement,
   onRotateDevice,
   onSelectDevice,
   onSelectPlanElement
@@ -38,6 +40,7 @@ export function PlanCanvas({
   cableType: CableRouteType;
   visibleLayers: Record<LayerType, boolean>;
   showJunctions: boolean;
+  visibleCoverageDeviceIds: string[];
   selectedDeviceId?: string;
   selectedPlanElementId?: string;
   activeDeviceId?: string;
@@ -46,6 +49,7 @@ export function PlanCanvas({
   onAddPlanElement: (type: PlanElementType, element: Omit<PlanElement, "id" | "projectId" | "planId" | "type">) => void;
   onMoveDevice: (deviceId: string, x: number, y: number) => void;
   onMovePlanElement: (elementId: string, x: number, y: number) => void;
+  onRemovePlanElement: (elementId: string) => void;
   onRotateDevice: (deviceId: string, direction: number) => void;
   onSelectDevice: (deviceId: string) => void;
   onSelectPlanElement: (elementId: string) => void;
@@ -181,7 +185,11 @@ export function PlanCanvas({
         scaleX={stageScale}
         scaleY={stageScale}
         draggable={!readonly && drawingTool === "select"}
-        onDragEnd={(event) => setStagePos({ x: event.target.x(), y: event.target.y() })}
+        onDragEnd={(event) => {
+          if (event.target === event.currentTarget) {
+            setStagePos({ x: event.target.x(), y: event.target.y() });
+          }
+        }}
         onWheel={handleWheel}
         onMouseDown={handleDrawStart}
         onMouseMove={handleDrawMove}
@@ -210,6 +218,7 @@ export function PlanCanvas({
                 readonly={readonly}
                 drawingTool={drawingTool}
                 onMove={(x, y) => onMovePlanElement(element.id, x, y)}
+                onRemove={() => onRemovePlanElement(element.id)}
                 onSelect={() => onSelectPlanElement(element.id)}
               />
             ))}
@@ -218,7 +227,7 @@ export function PlanCanvas({
               <CoverageSector
                 key={`coverage-${device.id}`}
                 device={device}
-                selected={device.id === selectedDeviceId}
+                selected={visibleCoverageDeviceIds.includes(device.id)}
               />
             ))}
             {deviceClusters.map((cluster) => (
@@ -365,6 +374,7 @@ function PlanElementNode({
   readonly,
   drawingTool,
   onMove,
+  onRemove,
   onSelect
 }: {
   element: PlanElement;
@@ -374,6 +384,7 @@ function PlanElementNode({
   readonly?: boolean;
   drawingTool: PlanDrawingTool;
   onMove: (x: number, y: number) => void;
+  onRemove: () => void;
   onSelect: () => void;
 }) {
   if (element.type === "wall") {
@@ -425,7 +436,7 @@ function PlanElementNode({
   if (element.type === "junction") {
     if (!showJunctions) return null;
     const isLinkedToActiveDevice = Boolean(activeDeviceId && element.deviceId === activeDeviceId);
-    const shouldHide = Boolean(activeDeviceId && element.deviceId !== activeDeviceId);
+    const shouldHide = Boolean(activeDeviceId && element.deviceId !== activeDeviceId && drawingTool !== "select");
 
     if (shouldHide) return null;
 
@@ -434,6 +445,14 @@ function PlanElementNode({
         x={element.x}
         y={element.y}
         draggable={!readonly && drawingTool === "select"}
+        onMouseDown={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
+        onTouchStart={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
         onClick={(event) => {
           event.cancelBubble = true;
           if (!readonly && drawingTool === "select") onSelect();
@@ -448,13 +467,37 @@ function PlanElementNode({
         }}
         onDragEnd={(event) => {
           event.cancelBubble = true;
-          onMove(event.target.x(), event.target.y());
+          onMove(event.currentTarget.x(), event.currentTarget.y());
         }}
       >
         {selected ? <Circle radius={16} fill="rgba(47, 109, 246, 0.1)" stroke="#2f6df6" strokeWidth={2} dash={[4, 3]} /> : null}
         <Circle radius={isLinkedToActiveDevice ? 12 : 10} fill={junctionStyle.fill} stroke={junctionStyle.color} strokeWidth={3} shadowBlur={8} shadowOpacity={0.12} />
         <Line points={[-5, 0, 5, 0]} stroke={junctionStyle.color} strokeWidth={2} lineCap="round" />
         <Line points={[0, -5, 0, 5]} stroke={junctionStyle.color} strokeWidth={2} lineCap="round" />
+        {selected && !readonly ? (
+          <Group
+            x={18}
+            y={-18}
+            onMouseDown={(event) => {
+              event.cancelBubble = true;
+            }}
+            onTouchStart={(event) => {
+              event.cancelBubble = true;
+            }}
+            onClick={(event) => {
+              event.cancelBubble = true;
+              onRemove();
+            }}
+            onTap={(event) => {
+              event.cancelBubble = true;
+              onRemove();
+            }}
+          >
+            <Circle radius={9} fill="#dc2626" stroke="#ffffff" strokeWidth={2} />
+            <Line points={[-3, -3, 3, 3]} stroke="#ffffff" strokeWidth={1.8} lineCap="round" />
+            <Line points={[3, -3, -3, 3]} stroke="#ffffff" strokeWidth={1.8} lineCap="round" />
+          </Group>
+        ) : null}
       </Group>
     );
   }
