@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Cable, Check, ExternalLink, Eye, EyeOff, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Upload, X } from "lucide-react";
+import { ArrowLeft, Cable, Check, ExternalLink, Eye, EyeOff, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DeviceDetailsPanel } from "@/components/device-details-panel";
@@ -30,6 +30,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     plans,
     devices,
     planElements,
+    history,
     hydrate,
     addDevice,
     addFloorPlan,
@@ -41,7 +42,8 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     updateDevice,
     updateFloorPlanName,
     updatePlanElement,
-    updatePlanSource
+    updatePlanSource,
+    undo
   } = useProjectStore();
   const [visibleLayers, setVisibleLayers] = useState(initialLayers);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
@@ -293,13 +295,28 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                 Blanco
               </button>
             </div>
-            <button
-              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-medium text-ink-700 transition hover:border-red-300 hover:text-red-600"
-              onClick={() => clearPlanElements(plan.id)}
-            >
-              <Trash2 size={15} />
-              Limpiar dibujo
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 transition hover:border-accent-500/50 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => {
+                  undo();
+                  setSelectedDeviceId(undefined);
+                  setSelectedPlanElementId(undefined);
+                }}
+                disabled={history.length === 0}
+                title="Deshacer ultima accion"
+              >
+                <Undo2 size={15} />
+                Deshacer
+              </button>
+              <button
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-medium text-ink-700 transition hover:border-red-300 hover:text-red-600"
+                onClick={() => clearPlanElements(plan.id)}
+              >
+                <Trash2 size={15} />
+                Limpiar dibujo
+              </button>
+            </div>
           </div>
         ) : null}
 

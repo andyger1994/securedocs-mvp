@@ -5,12 +5,21 @@ import { deviceCatalog } from "@/lib/device-catalog";
 import { mockDevices, mockPlanElements, mockPlans, mockProjects } from "@/lib/mock-data";
 import type { Device, DeviceType, FloorPlan, PlanElement, PlanElementType, Project } from "@/lib/types";
 
+interface HistorySnapshot {
+  projects: Project[];
+  plans: FloorPlan[];
+  devices: Device[];
+  planElements: PlanElement[];
+}
+
 interface ProjectState {
   hydrated: boolean;
   projects: Project[];
   plans: FloorPlan[];
   devices: Device[];
   planElements: PlanElement[];
+  history: HistorySnapshot[];
+  undo: () => void;
   hydrate: () => void;
   createProject: (clientName: string, address: string) => Project;
   addFloorPlan: (projectId: string) => FloorPlan;
@@ -41,6 +50,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   plans: mockPlans,
   devices: mockDevices,
   planElements: mockPlanElements,
+  history: [],
+  undo: () => {
+    const history = get().history;
+    const previous = history[history.length - 1];
+    if (!previous) return;
+    set({
+      projects: previous.projects,
+      plans: previous.plans,
+      devices: previous.devices,
+      planElements: previous.planElements,
+      history: history.slice(0, -1)
+    });
+    saveSnapshot(previous.projects, previous.plans, previous.devices, previous.planElements);
+  },
   hydrate: () => {
     if (typeof window === "undefined" || get().hydrated) return;
     const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -122,6 +145,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     saveSnapshot(projects, plans, get().devices, get().planElements);
   },
   addDevice: (projectId, planId, type, x, y) => {
+    const history = pushHistory(get());
     const catalogItem = deviceCatalog.find((item) => item.type === type)!;
     const device: Device = {
       id: `dev-${crypto.randomUUID()}`,
@@ -148,15 +172,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     };
     const devices = [...get().devices, device];
     const projects = touchProject(get().projects, projectId);
-    set({ devices, projects });
+    set({ devices, projects, history });
     saveSnapshot(projects, get().plans, devices, get().planElements);
     return device;
   },
   moveDevice: (deviceId, x, y) => {
     const device = get().devices.find((item) => item.id === deviceId);
+    if (!device || (device.x === x && device.y === y)) return;
+    const history = pushHistory(get());
     const devices = get().devices.map((item) => (item.id === deviceId ? { ...item, x, y } : item));
-    const projects = device ? touchProject(get().projects, device.projectId) : get().projects;
-    set({ devices, projects });
+    const projects = touchProject(get().projects, device.projectId);
+    set({ devices, projects, history });
     saveSnapshot(projects, get().plans, devices, get().planElements);
   },
   updateDevice: (deviceId, patch) => {
@@ -169,13 +195,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   removeDevice: (deviceId) => {
     const device = get().devices.find((item) => item.id === deviceId);
     if (!device) return;
+    const history = pushHistory(get());
     const devices = get().devices.filter((item) => item.id !== deviceId);
     const planElements = get().planElements.filter((element) => element.deviceId !== deviceId);
     const projects = touchProject(get().projects, device.projectId);
-    set({ devices, planElements, projects });
+    set({ devices, planElements, projects, history });
     saveSnapshot(projects, get().plans, devices, planElements);
   },
   addPlanElement: (projectId, planId, type, element) => {
+    const history = pushHistory(get());
     const planElement: PlanElement = {
       id: `element-${crypto.randomUUID()}`,
       projectId,
@@ -185,30 +213,34 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     };
     const planElements = [...get().planElements, planElement];
     const projects = touchProject(get().projects, projectId);
-    set({ planElements, projects });
+    set({ planElements, projects, history });
     saveSnapshot(projects, get().plans, get().devices, planElements);
   },
   updatePlanElement: (elementId, patch) => {
     const element = get().planElements.find((item) => item.id === elementId);
     if (!element) return;
+    const history = pushHistory(get());
     const planElements = get().planElements.map((item) => (item.id === elementId ? { ...item, ...patch } : item));
     const projects = touchProject(get().projects, element.projectId);
-    set({ planElements, projects });
+    set({ planElements, projects, history });
     saveSnapshot(projects, get().plans, get().devices, planElements);
   },
   removePlanElement: (elementId) => {
     const element = get().planElements.find((item) => item.id === elementId);
     if (!element) return;
+    const history = pushHistory(get());
     const planElements = get().planElements.filter((item) => item.id !== elementId);
     const projects = touchProject(get().projects, element.projectId);
-    set({ planElements, projects });
+    set({ planElements, projects, history });
     saveSnapshot(projects, get().plans, get().devices, planElements);
   },
   clearPlanElements: (planId) => {
     const plan = get().plans.find((item) => item.id === planId);
+    if (!plan || !get().planElements.some((element) => element.planId === planId)) return;
+    const history = pushHistory(get());
     const planElements = get().planElements.filter((element) => element.planId !== planId);
-    const projects = plan ? touchProject(get().projects, plan.projectId) : get().projects;
-    set({ planElements, projects });
+    const projects = touchProject(get().projects, plan.projectId);
+    set({ planElements, projects, history });
     saveSnapshot(projects, get().plans, get().devices, planElements);
   },
   updatePlanSource: (planId, sourceUrl, sourceType) => {
@@ -217,6 +249,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     saveSnapshot(get().projects, plans, get().devices, get().planElements);
   }
 }));
+
+function pushHistory(state: Pick<ProjectState, "projects" | "plans" | "devices" | "planElements" | "history">) {
+  const snapshot: HistorySnapshot = {
+    projects: state.projects,
+    plans: state.plans,
+    devices: state.devices,
+    planElements: state.planElements
+  };
+  return [...state.history.slice(-29), snapshot];
+}
 
 function touchProject(projects: Project[], projectId: string) {
   return projects.map((project) =>
