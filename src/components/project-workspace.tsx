@@ -67,6 +67,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   );
   const projectPlanElements = useMemo(() => planElements.filter((element) => element.planId === project?.planId), [planElements, project?.planId]);
   const selectedDevice = projectDevices.find((device) => device.id === selectedDeviceId);
+  const selectedPlanElement = projectPlanElements.find((element) => element.id === selectedPlanElementId);
 
   if (!project || !plan) {
     return (
@@ -257,7 +258,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                   }}
                 >
                   <Trash2 size={15} />
-                  Eliminar registro
+                  {selectedPlanElement?.type === "cable" ? "Eliminar canalizado" : "Eliminar registro"}
                 </button>
               ) : null}
               {visibleCoverageDeviceIds.length > 0 ? (

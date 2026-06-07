@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Group, Image as KonvaImage, Layer, Line, Rect, Stage, Text } from "react-konva";
 import type Konva from "konva";
-import { cableRouteLabels, cableRouteStyles, junctionStyle } from "@/lib/cable-routes";
+import { cableRouteStyles, junctionStyle } from "@/lib/cable-routes";
 import { deviceCatalog, layerColors } from "@/lib/device-catalog";
 import type { CableRouteType, Device, DeviceType, FloorPlan, LayerType, PlanDrawingTool, PlanElement, PlanElementType } from "@/lib/types";
 
@@ -408,16 +408,55 @@ function PlanElementNode({
   if (element.type === "cable") {
     const cableType = element.cableType ?? "underground";
     const style = cableRouteStyles[cableType];
+    const points = element.points ?? [];
     const isLinkedToActiveDevice = Boolean(activeDeviceId && element.deviceId === activeDeviceId);
     const shouldDim = Boolean(activeDeviceId && element.deviceId !== activeDeviceId);
-    const shouldHide = Boolean(activeDeviceId && !element.deviceId);
+    const shouldHide = Boolean(activeDeviceId && !element.deviceId && drawingTool !== "select");
+    const startX = points[0] ?? element.x;
+    const startY = points[1] ?? element.y;
+    const endX = points[points.length - 2] ?? startX;
+    const endY = points[points.length - 1] ?? startY;
 
     if (shouldHide) return null;
 
     return (
-      <Group>
+      <Group
+        onMouseDown={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
+        onTouchStart={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
+        onClick={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
+        onTap={(event) => {
+          event.cancelBubble = true;
+          if (!readonly && drawingTool === "select") onSelect();
+        }}
+      >
         <Line
-          points={element.points ?? []}
+          points={points}
+          stroke="rgba(0, 0, 0, 0.001)"
+          strokeWidth={20}
+          lineCap="round"
+          lineJoin="round"
+        />
+        {selected ? (
+          <Line
+            points={points}
+            stroke="#2f6df6"
+            strokeWidth={10}
+            opacity={0.18}
+            lineCap="round"
+            lineJoin="round"
+          />
+        ) : null}
+        <Line
+          points={points}
           stroke="#ffffff"
           strokeWidth={8}
           opacity={shouldDim ? 0.18 : 0.86}
@@ -425,7 +464,7 @@ function PlanElementNode({
           lineJoin="round"
         />
         <Line
-          points={element.points ?? []}
+          points={points}
           stroke={style.color}
           strokeWidth={isLinkedToActiveDevice ? 6 : 4}
           dash={style.dash}
@@ -433,15 +472,29 @@ function PlanElementNode({
           lineJoin="round"
           opacity={shouldDim ? 0.22 : 1}
         />
-        {!activeDeviceId || isLinkedToActiveDevice ? (
-          <Text
-            x={element.x + 8}
-            y={element.y + 8}
-            text={cableRouteLabels[cableType]}
-            fill={style.color}
-            fontSize={11}
-            fontStyle="bold"
-          />
+        {selected && !readonly ? (
+          <Group
+            x={(startX + endX) / 2}
+            y={(startY + endY) / 2}
+            onMouseDown={(event) => {
+              event.cancelBubble = true;
+            }}
+            onTouchStart={(event) => {
+              event.cancelBubble = true;
+            }}
+            onClick={(event) => {
+              event.cancelBubble = true;
+              onRemove();
+            }}
+            onTap={(event) => {
+              event.cancelBubble = true;
+              onRemove();
+            }}
+          >
+            <Circle radius={10} fill="#dc2626" stroke="#ffffff" strokeWidth={2} />
+            <Line points={[-3, -3, 3, 3]} stroke="#ffffff" strokeWidth={1.8} lineCap="round" />
+            <Line points={[3, -3, -3, 3]} stroke="#ffffff" strokeWidth={1.8} lineCap="round" />
+          </Group>
         ) : null}
       </Group>
     );
