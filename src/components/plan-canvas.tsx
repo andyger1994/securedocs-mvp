@@ -208,7 +208,7 @@ export function PlanCanvas({
             ) : (
               <BlankPlan plan={plan} />
             )}
-            {planElements.map((element) => (
+            {planElements.filter((element) => element.type !== "junction").map((element) => (
               <PlanElementNode
                 key={element.id}
                 element={element}
@@ -262,6 +262,20 @@ export function PlanCanvas({
                 />
               )
             ))}
+            {planElements.filter((element) => element.type === "junction").map((element) => (
+              <PlanElementNode
+                key={element.id}
+                element={element}
+                activeDeviceId={activeDeviceId}
+                showJunctions={showJunctions}
+                selected={element.id === selectedPlanElementId}
+                readonly={readonly}
+                drawingTool={drawingTool}
+                onMove={(x, y) => onMovePlanElement(element.id, x, y)}
+                onRemove={() => onRemovePlanElement(element.id)}
+                onSelect={() => onSelectPlanElement(element.id)}
+              />
+            ))}
           </Group>
         </Layer>
       </Stage>
@@ -280,7 +294,7 @@ function CoverageSector({ device, selected }: { device: Device; selected: boolea
   const color = layerColors[device.layer];
 
   return (
-    <Group>
+    <Group listening={false}>
       <Line
         points={getSectorPoints(device.x, device.y, range, angle, direction)}
         closed
@@ -309,7 +323,7 @@ function CurtainCoverage({ device, selected }: { device: Device; selected: boole
   const color = layerColors[device.layer];
 
   return (
-    <Group>
+    <Group listening={false}>
       <Line
         points={getSectorPoints(device.x, device.y, range, angle, direction)}
         closed
@@ -470,6 +484,7 @@ function PlanElementNode({
           onMove(event.currentTarget.x(), event.currentTarget.y());
         }}
       >
+        <Circle radius={22} fill="rgba(0, 0, 0, 0.001)" />
         {selected ? <Circle radius={16} fill="rgba(47, 109, 246, 0.1)" stroke="#2f6df6" strokeWidth={2} dash={[4, 3]} /> : null}
         <Circle radius={isLinkedToActiveDevice ? 12 : 10} fill={junctionStyle.fill} stroke={junctionStyle.color} strokeWidth={3} shadowBlur={8} shadowOpacity={0.12} />
         <Line points={[-5, 0, 5, 0]} stroke={junctionStyle.color} strokeWidth={2} lineCap="round" />
