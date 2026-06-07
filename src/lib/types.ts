@@ -12,6 +12,7 @@ export type DeviceType =
   | "light"
   | "audio"
   | "siren"
+  | "rtx"
   | "wireless_sensor"
   | "wireless_magnetic"
   | "wired_magnetic"

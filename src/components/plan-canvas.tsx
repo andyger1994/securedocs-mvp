@@ -827,6 +827,15 @@ function DeviceIcon({ device, selected }: { device: Device; selected: boolean })
           <Line points={[12, -1, 15, -5]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
         </Group>
       ) : null}
+      {device.type === "rtx" ? (
+        <Group>
+          <Rect x={-8} y={-10} width={16} height={20} fill="#ffffff" cornerRadius={3} />
+          <Circle y={4} radius={2.5} fill={color} />
+          <Line points={[0, -10, 0, -15]} stroke="#ffffff" strokeWidth={2.2} lineCap="round" />
+          <Line points={[-5, -7, -9, -11, -9, -15]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+          <Line points={[5, -7, 9, -11, 9, -15]} stroke="#ffffff" strokeWidth={2} lineCap="round" />
+        </Group>
+      ) : null}
       {device.type === "wireless_sensor" ? (
         <Group>
           <Circle radius={6} fill="#ffffff" />
