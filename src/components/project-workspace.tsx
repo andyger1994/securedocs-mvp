@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Cable, Check, Download, ExternalLink, Eye, EyeOff, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ArrowLeft, Cable, CalendarClock, Check, Download, ExternalLink, Eye, EyeOff, ImageOff, Layers, LockKeyhole, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Undo2, Upload, Wrench, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DeviceDetailsPanel } from "@/components/device-details-panel";
@@ -187,13 +187,47 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
             <h1 className="truncate text-base font-semibold lg:text-lg">{project.clientName}</h1>
             <p className="truncate text-sm text-ink-500">{project.address}</p>
           </div>
-          <div className="-mx-1 overflow-x-auto px-1">
+          <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1">
             <LayerControls
               visibleLayers={visibleLayers}
               onToggle={(layer) => setVisibleLayers((current) => ({ ...current, [layer]: !current[layer] }))}
             />
+            {visibleCoverageDeviceIds.length > 0 ? (
+              <button
+                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 transition hover:border-accent-500/50"
+                onClick={() => setVisibleCoverageDeviceIds([])}
+              >
+                <EyeOff size={15} />
+                Apagar alcances
+              </button>
+            ) : null}
           </div>
         </div>
+
+        {mode === "view" ? (
+          <div className="flex items-center justify-between gap-4 border-b border-line bg-ink-50 px-4 py-3 text-ink-500 lg:px-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-line bg-white">
+                <Wrench size={17} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink-700">Mantenimiento</p>
+                <p className="truncate text-xs">Ordenes de servicio, visitas y vencimientos del proyecto</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 opacity-60">
+              <CalendarClock size={16} />
+              <button
+                className="grid h-9 w-9 cursor-not-allowed place-items-center rounded-md border border-line bg-white"
+                disabled
+                aria-label="Mantenimiento bloqueado"
+                title="Mantenimiento bloqueado"
+              >
+                <LockKeyhole size={15} />
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="flex gap-3 overflow-x-auto border-b border-line bg-white px-4 py-2 lg:flex-wrap lg:items-center lg:justify-between lg:px-5">
           <div className="flex shrink-0 items-center gap-2">
@@ -322,15 +356,6 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                   {selectedPlanElement?.type === "cable" ? "Eliminar canalizado" : "Eliminar registro"}
                 </button>
               ) : null}
-              {visibleCoverageDeviceIds.length > 0 ? (
-                <button
-                  className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink-700 transition hover:border-accent-500/50"
-                  onClick={() => setVisibleCoverageDeviceIds([])}
-                >
-                  <EyeOff size={15} />
-                  Ocultar alcances ({visibleCoverageDeviceIds.length})
-                </button>
-              ) : null}
               {drawingTool === "cable" ? (
                 <>
                   <select
@@ -419,7 +444,11 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                 setSelectedDeviceId(deviceId);
                 const device = projectDevices.find((item) => item.id === deviceId);
                 if (device && (device.type === "camera" || device.type === "light" || device.type === "sensor")) {
-                  setVisibleCoverageDeviceIds((current) => [...new Set([...current, deviceId])]);
+                  setVisibleCoverageDeviceIds((current) =>
+                    current.includes(deviceId)
+                      ? current.filter((id) => id !== deviceId)
+                      : [...current, deviceId]
+                  );
                 }
               }}
               onSelectPlanElement={(elementId) => {
