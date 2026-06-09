@@ -2,15 +2,19 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Building2, MapPin, Plus, Router } from "lucide-react";
+import { Building2, FileUp, MapPin, Plus, Router } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { parseProjectFile } from "@/lib/project-file";
 import { useProjectStore } from "@/lib/store";
 
 export function Dashboard() {
-  const { projects, devices, createProject, hydrate } = useProjectStore();
+  const router = useRouter();
+  const { projects, devices, createProject, hydrate, importProject } = useProjectStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [importError, setImportError] = useState("");
   const [clientName, setClientName] = useState("");
   const [address, setAddress] = useState("");
 
@@ -32,16 +36,36 @@ export function Dashboard() {
     setIsOpen(false);
   }
 
+  async function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const project = importProject(parseProjectFile(await file.text()));
+      setImportError("");
+      router.push(`/projects/${project.id}`);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "No se pudo importar el proyecto.");
+    }
+  }
+
   return (
     <AppShell
       actions={
-        <button
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-accent-500 px-4 text-sm font-semibold text-white shadow-soft transition hover:bg-accent-600"
-          onClick={() => setIsOpen(true)}
-        >
-          <Plus size={17} />
-          Nuevo proyecto
-        </button>
+        <>
+          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink-700">
+            <FileUp size={17} />
+            Importar proyecto
+            <input className="sr-only" type="file" accept=".liconex,application/x-liconex-project" onChange={handleImport} />
+          </label>
+          <button
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-accent-500 px-4 text-sm font-semibold text-white shadow-soft transition hover:bg-accent-600"
+            onClick={() => setIsOpen(true)}
+          >
+            <Plus size={17} />
+            Nuevo proyecto
+          </button>
+        </>
       }
     >
       <section className="mx-auto max-w-7xl px-5 py-8">
@@ -51,6 +75,7 @@ export function Dashboard() {
           <p className="max-w-2xl text-sm leading-6 text-ink-500">
             Documenta planos, ubicacion de dispositivos y fichas tecnicas para mantenimiento.
           </p>
+          {importError ? <p className="text-sm font-medium text-red-600">{importError}</p> : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

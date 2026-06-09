@@ -2,13 +2,14 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Cable, Check, ExternalLink, Eye, EyeOff, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ArrowLeft, Cable, Check, Download, ExternalLink, Eye, EyeOff, ImageOff, Layers, MapPin, MousePointer2, Pencil, PencilLine, Plus, Settings2, Square, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DeviceDetailsPanel } from "@/components/device-details-panel";
 import { DevicePalette } from "@/components/device-palette";
 import { LayerControls } from "@/components/layer-controls";
 import { cableRouteLabels, cableRouteStyles } from "@/lib/cable-routes";
+import { downloadProjectFile } from "@/lib/project-file";
 import { useProjectStore } from "@/lib/store";
 import type { CableRouteType, DeviceType, LayerType, PlanDrawingTool } from "@/lib/types";
 
@@ -106,6 +107,20 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
           </Link>
           {mode === "edit" ? (
             <>
+              <button
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-line bg-white px-3 text-sm font-medium"
+                onClick={() =>
+                  downloadProjectFile({
+                    project,
+                    plans: projectPlans,
+                    devices: devices.filter((device) => device.projectId === project.id),
+                    planElements: planElements.filter((element) => element.projectId === project.id)
+                  })
+                }
+              >
+                <Download size={16} />
+                Descargar
+              </button>
               <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-line bg-white px-3 text-sm font-medium">
                 <Upload size={16} />
                 Subir plano

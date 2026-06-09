@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { deviceCatalog } from "@/lib/device-catalog";
 import { mockDevices, mockPlanElements, mockPlans, mockProjects } from "@/lib/mock-data";
+import type { LiconexProjectFile } from "@/lib/project-file";
 import type { Device, DeviceType, FloorPlan, PlanElement, PlanElementType, Project } from "@/lib/types";
 
 interface HistorySnapshot {
@@ -22,6 +23,7 @@ interface ProjectState {
   undo: () => void;
   hydrate: () => void;
   createProject: (clientName: string, address: string) => Project;
+  importProject: (data: LiconexProjectFile) => Project;
   addFloorPlan: (projectId: string) => FloorPlan;
   selectFloorPlan: (projectId: string, planId: string) => void;
   updateFloorPlanName: (planId: string, name: string) => void;
@@ -109,6 +111,60 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const plans = [plan, ...get().plans];
     set({ projects, plans });
     saveSnapshot(projects, plans, get().devices, get().planElements);
+    return project;
+  },
+  importProject: (data) => {
+    const history = pushHistory(get());
+    const projectId = `project-${crypto.randomUUID()}`;
+    const planIdMap = new Map(data.plans.map((plan) => [plan.id, `plan-${crypto.randomUUID()}`]));
+    const deviceIdMap = new Map(data.devices.map((device) => [device.id, `dev-${crypto.randomUUID()}`]));
+    const plans = data.plans.map((plan) => ({
+      ...plan,
+      id: planIdMap.get(plan.id)!,
+      projectId
+    }));
+    const activePlanId = planIdMap.get(data.project.planId) ?? plans[0]?.id;
+    const fallbackPlan: FloorPlan = {
+      id: `plan-${crypto.randomUUID()}`,
+      projectId,
+      name: "Piso 1",
+      sourceType: "blank"
+    };
+    const importedPlans = plans.length > 0 ? plans : [fallbackPlan];
+    const project: Project = {
+      ...data.project,
+      id: projectId,
+      planId: activePlanId ?? fallbackPlan.id,
+      clientName: `${data.project.clientName} (importado)`,
+      updatedAt: new Date().toISOString()
+    };
+    const importedDevices = data.devices.map((device) => {
+      const deviceId = deviceIdMap.get(device.id)!;
+      return {
+        ...device,
+        id: deviceId,
+        projectId,
+        planId: planIdMap.get(device.planId) ?? project.planId,
+        files: device.files.map((file) => ({
+          ...file,
+          id: `file-${crypto.randomUUID()}`,
+          deviceId
+        }))
+      };
+    });
+    const importedElements = data.planElements.map((element) => ({
+      ...element,
+      id: `element-${crypto.randomUUID()}`,
+      projectId,
+      planId: planIdMap.get(element.planId) ?? project.planId,
+      deviceId: element.deviceId ? deviceIdMap.get(element.deviceId) : undefined
+    }));
+    const projects = [project, ...get().projects];
+    const nextPlans = [...importedPlans, ...get().plans];
+    const devices = [...get().devices, ...importedDevices];
+    const planElements = [...get().planElements, ...importedElements];
+    set({ projects, plans: nextPlans, devices, planElements, history });
+    saveSnapshot(projects, nextPlans, devices, planElements);
     return project;
   },
   addFloorPlan: (projectId) => {
