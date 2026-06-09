@@ -31,8 +31,10 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     plans,
     devices,
     planElements,
+    hydrated,
     history,
     hydrate,
+    hydrateShared,
     addDevice,
     addFloorPlan,
     addPlanElement,
@@ -57,9 +59,15 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [editingFloorId, setEditingFloorId] = useState<string>();
   const [floorName, setFloorName] = useState("");
 
-  useEffect(() => hydrate(), [hydrate]);
+  useEffect(() => {
+    if (mode === "view") {
+      void hydrateShared(projectId);
+      return;
+    }
+    void hydrate();
+  }, [hydrate, hydrateShared, mode, projectId]);
 
-  const project = projects.find((item) => item.id === projectId);
+  const project = projects.find((item) => item.id === projectId || item.shareToken === projectId);
   const plan = plans.find((item) => item.id === project?.planId);
   const projectPlans = useMemo(() => plans.filter((item) => item.projectId === projectId), [plans, projectId]);
   const projectDevices = useMemo(
@@ -69,6 +77,14 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const projectPlanElements = useMemo(() => planElements.filter((element) => element.planId === project?.planId), [planElements, project?.planId]);
   const selectedDevice = projectDevices.find((device) => device.id === selectedDeviceId);
   const selectedPlanElement = projectPlanElements.find((element) => element.id === selectedPlanElementId);
+
+  if (!hydrated) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-ink-50 text-sm font-medium text-ink-500">
+        Cargando proyecto...
+      </main>
+    );
+  }
 
   if (!project || !plan) {
     return (
@@ -127,7 +143,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                 <input className="sr-only" type="file" accept="image/*,application/pdf" onChange={handleUpload} />
               </label>
               <Link
-                href={`/share/${project.id}`}
+                href={`/share/${project.shareToken ?? project.id}`}
                 className="inline-flex h-10 items-center gap-2 rounded-md bg-ink-900 px-3 text-sm font-semibold text-white"
               >
                 <ExternalLink size={16} />

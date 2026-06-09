@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { loadCloudProjects, loadSharedProject, saveCloudProjects, type ProjectDocument } from "@/lib/cloud-projects";
 import { deviceCatalog } from "@/lib/device-catalog";
 import { mockDevices, mockPlanElements, mockPlans, mockProjects } from "@/lib/mock-data";
 import type { LiconexProjectFile } from "@/lib/project-file";
@@ -21,7 +22,8 @@ interface ProjectState {
   planElements: PlanElement[];
   history: HistorySnapshot[];
   undo: () => void;
-  hydrate: () => void;
+  hydrate: () => Promise<void>;
+  hydrateShared: (projectKey: string) => Promise<void>;
   createProject: (clientName: string, address: string) => Project;
   importProject: (data: LiconexProjectFile) => Project;
   addFloorPlan: (projectId: string) => FloorPlan;
@@ -40,10 +42,12 @@ interface ProjectState {
 
 const STORAGE_KEY = "liconex-mvp";
 const LEGACY_STORAGE_KEY = "security-docs-mvp";
+let cloudSyncTimer: ReturnType<typeof setTimeout> | undefined;
 
 function saveSnapshot(projects: Project[], plans: FloorPlan[], devices: Device[], planElements: PlanElement[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ projects, plans, devices, planElements }));
+  queueCloudSync(projects, plans, devices, planElements);
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -66,33 +70,53 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
     saveSnapshot(previous.projects, previous.plans, previous.devices, previous.planElements);
   },
-  hydrate: () => {
+  hydrate: async () => {
     if (typeof window === "undefined" || get().hydrated) return;
     const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    let localSnapshot = migrateSnapshot(mockProjects, mockPlans, mockDevices, mockPlanElements);
     if (!raw) {
-      set({ hydrated: true });
-      saveSnapshot(mockProjects, mockPlans, mockDevices, mockPlanElements);
-      return;
+      localSnapshot = migrateSnapshot(mockProjects, mockPlans, mockDevices, mockPlanElements);
+    } else {
+      try {
+        const parsed = JSON.parse(raw) as Partial<Pick<ProjectState, "projects" | "plans" | "devices" | "planElements">>;
+        localSnapshot = migrateSnapshot(
+          parsed.projects ?? mockProjects,
+          parsed.plans ?? mockPlans,
+          parsed.devices ?? mockDevices,
+          parsed.planElements ?? []
+        );
+      } catch {
+        localSnapshot = migrateSnapshot(mockProjects, mockPlans, mockDevices, mockPlanElements);
+      }
     }
+    set({ ...localSnapshot, hydrated: true });
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+
     try {
-      const parsed = JSON.parse(raw) as Partial<Pick<ProjectState, "projects" | "plans" | "devices" | "planElements">>;
-      const migrated = migrateSnapshot(
-        parsed.projects ?? mockProjects,
-        parsed.plans ?? mockPlans,
-        parsed.devices ?? mockDevices,
-        parsed.planElements ?? []
-      );
-      set({
-        hydrated: true,
-        projects: migrated.projects,
-        plans: migrated.plans,
-        devices: migrated.devices,
-        planElements: migrated.planElements
-      });
-      saveSnapshot(migrated.projects, migrated.plans, migrated.devices, migrated.planElements);
-      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-    } catch {
-      set({ hydrated: true });
+      const cloudDocuments = await loadCloudProjects();
+      const merged = mergeDocuments(buildProjectDocuments(localSnapshot.projects, localSnapshot.plans, localSnapshot.devices, localSnapshot.planElements), cloudDocuments);
+      const snapshot = flattenDocuments(merged);
+      set({ ...snapshot, hydrated: true });
+      saveSnapshot(snapshot.projects, snapshot.plans, snapshot.devices, snapshot.planElements);
+    } catch (error) {
+      console.error("No se pudieron cargar los proyectos desde Supabase.", error);
+      saveSnapshot(localSnapshot.projects, localSnapshot.plans, localSnapshot.devices, localSnapshot.planElements);
+    }
+  },
+  hydrateShared: async (projectKey) => {
+    if (typeof window === "undefined") return;
+    set({ hydrated: false });
+    try {
+      const document = await loadSharedProject(projectKey);
+      if (!document) {
+        set({ hydrated: true, projects: [], plans: [], devices: [], planElements: [] });
+        return;
+      }
+      const snapshot = flattenDocuments([document]);
+      set({ ...snapshot, hydrated: true });
+    } catch (error) {
+      console.error("No se pudo abrir el proyecto compartido.", error);
+      set({ hydrated: true, projects: [], plans: [], devices: [], planElements: [] });
     }
   },
   createProject: (clientName, address) => {
@@ -104,7 +128,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       clientName,
       address,
       updatedAt: new Date().toISOString(),
-      planId
+      planId,
+      shareToken: crypto.randomUUID()
     };
     const plan: FloorPlan = { id: planId, projectId: id, name: "Piso 1", sourceType: "blank" };
     const projects = [project, ...get().projects];
@@ -136,7 +161,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       id: projectId,
       planId: activePlanId ?? fallbackPlan.id,
       clientName: `${data.project.clientName} (importado)`,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      shareToken: crypto.randomUUID()
     };
     const importedDevices = data.devices.map((device) => {
       const deviceId = deviceIdMap.get(device.id)!;
@@ -316,6 +342,46 @@ function pushHistory(state: Pick<ProjectState, "projects" | "plans" | "devices" 
   return [...state.history.slice(-29), snapshot];
 }
 
+function queueCloudSync(projects: Project[], plans: FloorPlan[], devices: Device[], planElements: PlanElement[]) {
+  if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(() => {
+    void saveCloudProjects(buildProjectDocuments(projects, plans, devices, planElements)).catch((error) => {
+      console.error("No se pudieron guardar los proyectos en Supabase.", error);
+    });
+  }, 700);
+}
+
+function buildProjectDocuments(projects: Project[], plans: FloorPlan[], devices: Device[], planElements: PlanElement[]) {
+  return projects.map<ProjectDocument>((project) => ({
+    project,
+    plans: plans.filter((plan) => plan.projectId === project.id),
+    devices: devices.filter((device) => device.projectId === project.id),
+    planElements: planElements.filter((element) => element.projectId === project.id)
+  }));
+}
+
+function flattenDocuments(documents: ProjectDocument[]) {
+  return {
+    projects: documents.map((document) => document.project),
+    plans: documents.flatMap((document) => document.plans),
+    devices: documents.flatMap((document) => document.devices),
+    planElements: documents.flatMap((document) => document.planElements)
+  };
+}
+
+function mergeDocuments(localDocuments: ProjectDocument[], cloudDocuments: ProjectDocument[]) {
+  const documents = new Map<string, ProjectDocument>();
+  for (const document of [...localDocuments, ...cloudDocuments]) {
+    const current = documents.get(document.project.id);
+    if (!current || new Date(document.project.updatedAt) >= new Date(current.project.updatedAt)) {
+      documents.set(document.project.id, document);
+    }
+  }
+  return [...documents.values()].sort(
+    (left, right) => new Date(right.project.updatedAt).getTime() - new Date(left.project.updatedAt).getTime()
+  );
+}
+
 function touchProject(projects: Project[], projectId: string) {
   return projects.map((project) =>
     project.id === projectId ? { ...project, updatedAt: new Date().toISOString() } : project
@@ -351,7 +417,9 @@ function migrateSnapshot(projects: Project[], plans: FloorPlan[], devices: Devic
 
   const migratedProjects = projects.map((project) => {
     const projectPlans = plansByProject.get(project.id) ?? [];
-    if (projectPlans.some((plan) => plan.id === project.planId)) return project;
+    if (projectPlans.some((plan) => plan.id === project.planId)) {
+      return { ...project, shareToken: project.shareToken ?? crypto.randomUUID() };
+    }
 
     const plan: FloorPlan = {
       id: `plan-${crypto.randomUUID()}`,
@@ -360,7 +428,7 @@ function migrateSnapshot(projects: Project[], plans: FloorPlan[], devices: Devic
       sourceType: "blank"
     };
     nextPlans.push(plan);
-    return { ...project, planId: plan.id };
+    return { ...project, planId: plan.id, shareToken: project.shareToken ?? crypto.randomUUID() };
   });
 
   const migratedDevices = devices.map((device) =>

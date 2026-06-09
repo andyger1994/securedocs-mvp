@@ -18,7 +18,9 @@ export function Dashboard() {
   const [clientName, setClientName] = useState("");
   const [address, setAddress] = useState("");
 
-  useEffect(() => hydrate(), [hydrate]);
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
 
   const counts = useMemo(() => {
     return devices.reduce<Record<string, number>>((acc, device) => {

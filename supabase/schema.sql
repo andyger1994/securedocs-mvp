@@ -99,6 +99,16 @@ create table public.maintenance_notes (
   created_at timestamptz not null default now()
 );
 
+create table public.project_documents (
+  id text primary key,
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  share_token uuid not null default gen_random_uuid() unique,
+  payload jsonb not null,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
 create index projects_organization_id_idx on public.projects(organization_id);
 create index floors_project_id_idx on public.floors(project_id);
 create index devices_project_id_idx on public.devices(project_id);
@@ -107,6 +117,8 @@ create index plan_elements_plan_id_idx on public.plan_elements(plan_id);
 create index plan_elements_device_id_idx on public.plan_elements(device_id);
 create index device_files_device_id_idx on public.device_files(device_id);
 create index maintenance_notes_device_id_idx on public.maintenance_notes(device_id);
+create index project_documents_organization_id_idx on public.project_documents(organization_id);
+create index project_documents_share_token_idx on public.project_documents(share_token);
 
 create or replace function public.current_organization_id()
 returns uuid
@@ -156,6 +168,7 @@ alter table public.devices enable row level security;
 alter table public.plan_elements enable row level security;
 alter table public.device_files enable row level security;
 alter table public.maintenance_notes enable row level security;
+alter table public.project_documents enable row level security;
 
 create policy "organization members can view organization"
 on public.organizations for select to authenticated
@@ -267,6 +280,29 @@ with check (
       and projects.organization_id = public.current_organization_id()
   )
 );
+
+create policy "organization members manage project documents"
+on public.project_documents for all to authenticated
+using (organization_id = public.current_organization_id())
+with check (
+  organization_id = public.current_organization_id()
+  and owner_id = auth.uid()
+);
+
+create or replace function public.get_shared_project(project_key text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select payload
+  from public.project_documents
+  where share_token::text = project_key or id = project_key
+  limit 1
+$$;
+
+grant execute on function public.get_shared_project(text) to anon, authenticated;
 
 insert into storage.buckets (id, name, public)
 values ('project-files', 'project-files', false)

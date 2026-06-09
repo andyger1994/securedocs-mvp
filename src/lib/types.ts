@@ -56,6 +56,7 @@ export interface Project {
   address: string;
   updatedAt: string;
   planId: string;
+  shareToken?: string;
 }
 
 export interface FloorPlan {
