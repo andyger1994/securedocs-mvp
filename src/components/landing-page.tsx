@@ -59,9 +59,15 @@ export function LandingPage() {
             <p className="mb-4 inline-flex rounded-full border border-line bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent-600">
               SaaS para instaladores e integradores
             </p>
-            <h1 className="text-4xl font-semibold leading-tight text-ink-900 md:text-6xl">
-              Liconex
-            </h1>
+            <h1 className="sr-only">Liconex</h1>
+            <Image
+              src="/brand/liconex-wordmark.png"
+              alt="Liconex"
+              width={838}
+              height={159}
+              priority
+              className="h-auto w-full max-w-md"
+            />
             <p className="mt-5 max-w-xl text-base leading-7 text-ink-700 md:text-lg">
               Documentacion interactiva profesional para instalaciones de seguridad electronica:
               planos por piso, dispositivos ubicados visualmente y fichas tecnicas listas para mantenimiento.

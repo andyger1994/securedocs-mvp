@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function LiconexLogo({
@@ -11,28 +12,30 @@ export function LiconexLogo({
   compact?: boolean;
   inverted?: boolean;
 }) {
-  const content = (
+  const content = compact ? (
+    <LiconexMark />
+  ) : (
     <span className="flex items-center gap-3">
-      <LiconexMark />
-      {compact ? null : (
-        <span>
-          <span className={`block text-sm font-semibold tracking-wide ${inverted ? "text-white" : "text-ink-900"}`}>
-            Liconex
-          </span>
-          {subtitle ? (
-            <span className={`block text-xs ${inverted ? "text-white/64" : "text-ink-500"}`}>
-              {subtitle}
-            </span>
-          ) : null}
+      <Image
+        src="/brand/liconex-wordmark.png"
+        alt="Liconex"
+        width={838}
+        height={159}
+        priority
+        className={`h-7 w-auto object-contain ${inverted ? "brightness-0 invert" : ""}`}
+      />
+      {subtitle ? (
+        <span className={`hidden border-l pl-3 text-xs sm:block ${inverted ? "border-white/20 text-white/64" : "border-line text-ink-500"}`}>
+          {subtitle}
         </span>
-      )}
+      ) : null}
     </span>
   );
 
   if (!href) return content;
 
   return (
-    <Link href={href} className="inline-flex items-center">
+    <Link href={href} className="inline-flex items-center" aria-label="Liconex">
       {content}
     </Link>
   );
@@ -40,14 +43,14 @@ export function LiconexLogo({
 
 export function LiconexMark() {
   return (
-    <span className="grid h-10 w-10 place-items-center rounded-lg bg-ink-900 text-white shadow-sm">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M7 4v14h9.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M7 13.5 16.8 5" stroke="#5dd6a5" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx="7" cy="4" r="2.2" fill="#2f6df6" stroke="white" strokeWidth="1.4" />
-        <circle cx="17" cy="5" r="2.2" fill="#5dd6a5" stroke="white" strokeWidth="1.4" />
-        <circle cx="16.5" cy="18" r="2.2" fill="#f59e0b" stroke="white" strokeWidth="1.4" />
-      </svg>
+    <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-md border border-line bg-white shadow-sm">
+      <Image
+        src="/brand/liconex-mark.png"
+        alt=""
+        width={96}
+        height={96}
+        className="h-8 w-8 object-contain"
+      />
     </span>
   );
 }
