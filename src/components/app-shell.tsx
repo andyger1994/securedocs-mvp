@@ -8,9 +8,10 @@ import { LiconexLogo } from "@/components/liconex-logo";
 export function AppShell({ children, actions }: { children: React.ReactNode; actions?: React.ReactNode }) {
   const router = useRouter();
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     router.replace("/login");
+    router.refresh();
   }
 
   return (

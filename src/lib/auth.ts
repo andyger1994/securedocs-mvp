@@ -1,30 +1,27 @@
 "use client";
 
-export const AUTH_STORAGE_KEY = "liconex-authenticated";
-const LEGACY_AUTH_STORAGE_KEY = "security-docs-authenticated";
-export const DEMO_USERNAME = "Liconex";
-export const DEMO_PASSWORD = "Liconex";
+import { supabase } from "@/lib/supabase";
 
-export function isAuthenticated() {
-  if (typeof window === "undefined") return false;
-  const legacyValue = window.localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
-  if (legacyValue === "true") {
-    window.localStorage.setItem(AUTH_STORAGE_KEY, "true");
-    window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
-  }
-  return window.localStorage.getItem(AUTH_STORAGE_KEY) === "true";
+export async function isAuthenticated() {
+  if (!supabase) return false;
+  const { data, error } = await supabase.auth.getSession();
+  return !error && Boolean(data.session);
 }
 
-export function login(username: string, password: string) {
-  const valid = username === DEMO_USERNAME && password === DEMO_PASSWORD;
-  if (valid) {
-    window.localStorage.setItem(AUTH_STORAGE_KEY, "true");
+export async function login(email: string, password: string) {
+  if (!supabase) {
+    return { success: false, message: "Supabase no esta configurado." };
   }
-  return valid;
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    return { success: false, message: "Correo o contrasena incorrectos." };
+  }
+
+  return { success: true, message: "" };
 }
 
-export function logout() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(AUTH_STORAGE_KEY);
-  window.localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+export async function logout() {
+  if (!supabase) return;
+  await supabase.auth.signOut();
 }

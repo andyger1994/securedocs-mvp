@@ -12,20 +12,25 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.replace("/dashboard");
-    }
+    void isAuthenticated().then((authenticated) => {
+      if (authenticated) router.replace("/dashboard");
+    });
   }, [router]);
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (login(username.trim(), password)) {
+    setSubmitting(true);
+    const result = await login(username.trim(), password);
+    setSubmitting(false);
+    if (result.success) {
       router.replace("/dashboard");
+      router.refresh();
       return;
     }
-    setError("Usuario o contrasena incorrectos.");
+    setError(result.message);
   }
 
   return (
@@ -56,7 +61,7 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit}>
             <label className="block text-sm font-medium">
-              Usuario
+              Correo
               <input
                 className="mt-2 h-11 w-full rounded-md border border-line px-3 outline-none focus:border-accent-500"
                 value={username}
@@ -64,7 +69,8 @@ export function LoginPage() {
                   setUsername(event.target.value);
                   setError("");
                 }}
-                autoComplete="username"
+                type="email"
+                autoComplete="email"
                 autoFocus
               />
             </label>
@@ -82,8 +88,11 @@ export function LoginPage() {
               />
             </label>
             {error ? <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p> : null}
-            <button className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-accent-500 px-4 text-sm font-semibold text-white transition hover:bg-accent-600">
-              Ingresar
+            <button
+              className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-accent-500 px-4 text-sm font-semibold text-white transition hover:bg-accent-600 disabled:cursor-wait disabled:opacity-60"
+              disabled={submitting}
+            >
+              {submitting ? "Ingresando..." : "Ingresar"}
               <ArrowRight size={16} />
             </button>
           </form>
