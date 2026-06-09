@@ -36,31 +36,18 @@ export async function saveCloudProjects(documents: ProjectDocument[]) {
   const user = sessionData.session?.user;
   if (!user) return;
 
-  const { data: profile, error: profileError } = await supabase
-    .from("users")
-    .select("organization_id")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) throw profileError ?? new Error("No se encontro la organizacion.");
-
-  const rows = documents.map((document) => ({
-    id: document.project.id,
-    organization_id: profile.organization_id,
-    owner_id: user.id,
-    share_token: document.project.shareToken,
-    payload: {
-      ...document,
-      project: {
-        ...document.project,
-        organizationId: profile.organization_id
-      }
-    },
-    updated_at: document.project.updatedAt
-  }));
-
-  const { error } = await supabase.from("project_documents").upsert(rows, { onConflict: "id" });
-  if (error) throw error;
+  for (const document of documents) {
+    if (!document.project.shareToken) {
+      throw new Error("El proyecto no tiene un token para compartir.");
+    }
+    const { error } = await supabase.rpc("publish_project_document", {
+      project_id: document.project.id,
+      project_share_token: document.project.shareToken,
+      project_payload: document,
+      project_updated_at: document.project.updatedAt
+    });
+    if (error) throw new Error(error.message);
+  }
 }
 
 export async function loadSharedProject(projectKey: string) {

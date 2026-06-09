@@ -153,10 +153,14 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                     const shareToken = await publishProject(project.id);
                     window.open(`/share/${shareToken}`, "_blank", "noopener,noreferrer");
                   } catch (error) {
-                    window.alert(
+                    const message =
                       error instanceof Error
-                        ? `No se pudo publicar el proyecto: ${error.message}`
-                        : "No se pudo publicar el proyecto."
+                        ? error.message
+                        : typeof error === "object" && error && "message" in error
+                          ? String(error.message)
+                          : "Error desconocido.";
+                    window.alert(
+                      `No se pudo publicar el proyecto: ${message}`
                     );
                   } finally {
                     setPublishingShare(false);
