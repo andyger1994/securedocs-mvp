@@ -24,6 +24,7 @@ interface ProjectState {
   undo: () => void;
   hydrate: () => Promise<void>;
   hydrateShared: (projectKey: string) => Promise<void>;
+  publishProject: (projectId: string) => Promise<string>;
   createProject: (clientName: string, address: string) => Project;
   importProject: (data: LiconexProjectFile) => Project;
   addFloorPlan: (projectId: string) => FloorPlan;
@@ -118,6 +119,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       console.error("No se pudo abrir el proyecto compartido.", error);
       set({ hydrated: true, projects: [], plans: [], devices: [], planElements: [] });
     }
+  },
+  publishProject: async (projectId) => {
+    const project = get().projects.find((item) => item.id === projectId);
+    if (!project) throw new Error("Proyecto no encontrado.");
+    const shareToken = project.shareToken ?? crypto.randomUUID();
+    const updatedProject = { ...project, shareToken, updatedAt: new Date().toISOString() };
+    const projects = get().projects.map((item) => (item.id === projectId ? updatedProject : item));
+    const document = buildProjectDocuments(projects, get().plans, get().devices, get().planElements).find(
+      (item) => item.project.id === projectId
+    );
+    if (!document) throw new Error("No se pudo preparar el proyecto.");
+    await saveCloudProjects([document]);
+    set({ projects });
+    saveSnapshot(projects, get().plans, get().devices, get().planElements);
+    return shareToken;
   },
   createProject: (clientName, address) => {
     const id = `project-${crypto.randomUUID()}`;

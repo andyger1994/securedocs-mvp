@@ -40,6 +40,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
     addPlanElement,
     clearPlanElements,
     moveDevice,
+    publishProject,
     removePlanElement,
     selectFloorPlan,
     updateDevice,
@@ -58,6 +59,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [mobilePanel, setMobilePanel] = useState<"devices" | "details" | null>(null);
   const [editingFloorId, setEditingFloorId] = useState<string>();
   const [floorName, setFloorName] = useState("");
+  const [publishingShare, setPublishingShare] = useState(false);
 
   useEffect(() => {
     if (mode === "view") {
@@ -142,13 +144,28 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                 Subir plano
                 <input className="sr-only" type="file" accept="image/*,application/pdf" onChange={handleUpload} />
               </label>
-              <Link
-                href={`/share/${project.shareToken ?? project.id}`}
+              <button
                 className="inline-flex h-10 items-center gap-2 rounded-md bg-ink-900 px-3 text-sm font-semibold text-white"
+                disabled={publishingShare}
+                onClick={async () => {
+                  setPublishingShare(true);
+                  try {
+                    const shareToken = await publishProject(project.id);
+                    window.open(`/share/${shareToken}`, "_blank", "noopener,noreferrer");
+                  } catch (error) {
+                    window.alert(
+                      error instanceof Error
+                        ? `No se pudo publicar el proyecto: ${error.message}`
+                        : "No se pudo publicar el proyecto."
+                    );
+                  } finally {
+                    setPublishingShare(false);
+                  }
+                }}
               >
                 <ExternalLink size={16} />
-                Link cliente
-              </Link>
+                {publishingShare ? "Publicando..." : "Link cliente"}
+              </button>
             </>
           ) : null}
         </>
