@@ -60,6 +60,7 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   const [editingFloorId, setEditingFloorId] = useState<string>();
   const [floorName, setFloorName] = useState("");
   const [publishingShare, setPublishingShare] = useState(false);
+  const [sharedPlanId, setSharedPlanId] = useState<string>();
 
   useEffect(() => {
     if (mode === "view") {
@@ -70,7 +71,8 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
   }, [hydrate, hydrateShared, mode, projectId]);
 
   const project = projects.find((item) => item.id === projectId || item.shareToken === projectId);
-  const plan = plans.find((item) => item.id === project?.planId);
+  const activePlanId = mode === "view" && sharedPlanId ? sharedPlanId : project?.planId;
+  const plan = plans.find((item) => item.id === activePlanId);
   const projectPlans = useMemo(
     () => plans.filter((item) => item.projectId === project?.id),
     [plans, project?.id]
@@ -239,7 +241,11 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
                     }`}
                     onClick={() => {
                       setSelectedDeviceId(undefined);
-                      selectFloorPlan(project.id, floorPlan.id);
+                      if (mode === "view") {
+                        setSharedPlanId(floorPlan.id);
+                      } else {
+                        selectFloorPlan(project.id, floorPlan.id);
+                      }
                     }}
                   >
                     {floorPlan.name}
