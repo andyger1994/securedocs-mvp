@@ -71,10 +71,13 @@ export function ProjectWorkspace({ projectId, mode }: { projectId: string; mode:
 
   const project = projects.find((item) => item.id === projectId || item.shareToken === projectId);
   const plan = plans.find((item) => item.id === project?.planId);
-  const projectPlans = useMemo(() => plans.filter((item) => item.projectId === projectId), [plans, projectId]);
+  const projectPlans = useMemo(
+    () => plans.filter((item) => item.projectId === project?.id),
+    [plans, project?.id]
+  );
   const projectDevices = useMemo(
-    () => devices.filter((device) => device.projectId === projectId && device.planId === project?.planId),
-    [devices, project?.planId, projectId]
+    () => devices.filter((device) => device.projectId === project?.id && device.planId === project?.planId),
+    [devices, project?.id, project?.planId]
   );
   const projectPlanElements = useMemo(() => planElements.filter((element) => element.planId === project?.planId), [planElements, project?.planId]);
   const selectedDevice = projectDevices.find((device) => device.id === selectedDeviceId);
